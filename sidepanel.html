@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessibility Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="shell">
+
+    <header class="header">
+      <div class="header-top">
+        <div class="logo">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M11 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="11" cy="11" r="2" fill="currentColor"/>
+          </svg>
+          <span>a11y</span>
+        </div>
+        <div class="header-actions">
+          <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+            <span class="theme-icon">
+              <svg class="icon-sun" width="14" height="14" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+                <path d="M37.41 41.95c-9.71 12.48-9.54 34.65 2.87 45.64c14.09 12.47 33.92 12.34 46.39.87c14.95-13.76 14.09-36.66.87-49.63c-13.29-13.04-37.04-13.72-50.13 3.12z" fill="currentColor"></path>
+                <path d="M63 20.27c-.93 1.74-.62 3.08 1.23 3.52c1.85.44 13.36 2.31 14.33 2.37c1.41.09 1.93-.97 1.76-2.2c-.18-1.23-2.99-18.46-3.25-20.04S75.14.76 73.55 2.87S63.7 18.96 63 20.27z" fill="currentColor" opacity="0.8"></path>
+                <path d="M92.8 32.23c-1.81.56-1.76 1.67-.79 3.08c.97 1.41 7.65 11.6 8.26 12.31c.62.7 1.67.88 2.55-.18c.88-1.05 11.86-16.45 12.66-17.41c1.32-1.58.53-3.25-1.49-2.73c-1.54.41-20.05 4.58-21.19 4.93z" fill="currentColor" opacity="0.8"></path>
+                <path d="M106.6 61.86c-1.3-.74-2.99-.53-3.43 1.14c-.44 1.67-2.37 13.8-2.55 14.86s.62 2.11 1.93 1.85s19.45-2.95 20.66-3.25c2.11-.53 2.81-2.64.62-4.22c-1.42-1.03-16-9.68-17.23-10.38z" fill="currentColor" opacity="0.8"></path>
+                <path d="M92.09 90.6c1.4-.75 2.64-.18 2.99 1.41c.35 1.58 4.22 17.76 4.84 20.75c.31 1.5-1.41 2.73-2.81 1.85c-1.41-.88-16.69-11.53-17.67-12.4c-1.41-1.23-.43-2.51.26-3.16c1.4-1.33 11.07-7.74 12.39-8.45z" fill="currentColor" opacity="0.8"></path>
+                <path d="M49.54 99.48c-1.77-.17-2.29 1.41-2.02 2.81c.26 1.41 2.9 19.24 3.08 20.57c.26 1.93 2.29 2.73 3.6.79s10.35-16.4 11.08-17.76c1.32-2.46.35-2.99-.97-3.6c-1.31-.61-12.92-2.63-14.77-2.81z" fill="currentColor" opacity="0.8"></path>
+                <path d="M24.23 79c1.23-2.02 2.81-1.49 3.96.44c.78 1.32 7.38 10.2 8 11.16c.62.97.88 2.81-1.05 3.25c-1.95.45-17.68 4.58-20.14 5.02c-2.46.44-3.87-1.49-2.29-3.6c.92-1.24 10.82-15.12 11.52-16.27z" fill="currentColor" opacity="0.8"></path>
+                <path d="M20.89 63.7c2.25 1 3.31.64 3.78-.97c.62-2.11 2.46-11.78 2.55-13.98c.06-1.43-.53-2.81-2.73-2.46S6.47 48.85 4.45 49.55c-2.35.82-2.18 3.4-.62 4.22c1.85.97 15.47 9.23 17.06 9.93z" fill="currentColor" opacity="0.8"></path>
+                <path d="M48.23 26.78c1.27-1.01.88-2.46-.26-3.25c-1.14-.79-15.26-11-17.05-12.4c-1.58-1.23-3.52-.79-2.99 2.02c.38 2.02 4.88 19.7 5.19 20.92c.35 1.41 1.41 2.11 2.64 1.23c1.21-.87 11.15-7.46 12.47-8.52z" fill="currentColor" opacity="0.8"></path>
+              </svg>
+              <svg class="icon-moon" width="14" height="14" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+                <path d="M99.32 28.84L93.51 9.5l-1.98-2.66s-.15-.18-.17-.24c-.06-.25-.13-.66.11-.97c.18-.23.49-.29.85-.26c.14.01.48.14 1.02.44c5.31 3 28.21 21.75 30.14 52.02c1.09 17.1-5.15 35.4-18.27 48.16c-12.46 12.11-31.28 19.65-51.98 16.7c-30.94-4.41-44.22-23.21-47.69-29.42c-.61-1.1-.91-1.8-.97-1.97c-.82-2.15-.6-3.24.17-3.49c.2-.06.65.02.9.3c1 1.12 2.82 1.85 2.82 1.85l12.88 10.43l63.89 4.84l22.65-49.38l-8.56-27.01z" fill="currentColor" opacity="0.9"></path>
+                <path d="M73.65 87.67c15.97-9.9 23.77-26.72 24.39-42.28c.9-22.79-6.68-38.8-6.68-38.8s14.01 11.5 21.68 28.08s9 43.87-7.78 63.4c-18.45 21.45-43.18 22.72-58.73 18.7c-32.27-8.35-41.09-28.83-41.09-28.83s17.78 9.95 37.77 8.9c14.88-.78 22.54-4.27 30.44-9.17z" fill="currentColor"></path>
+              </svg>
+            </span>
+          </button>
+          <div class="status-pill" id="statusPill">idle</div>
+        </div>
+      </div>
+      <h1 class="headline">Accessibility<br>Scanner</h1>
+    </header>
+
+    <div class="scan-bar">
+      <button id="scanButton" class="scan-btn">
+        <span class="btn-label">Scan This Page</span>
+        <span class="btn-icon">→</span>
+      </button>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="loader-track">
+        <div class="loader-fill"></div>
+      </div>
+      <p class="loading-text">Scanning page…</p>
+    </div>
+
+    <div id="results" class="results hidden">
+
+      <div class="summary-strip" id="summaryStrip"></div>
+
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="error">
+          <span class="dot error"></span>Errors
+        </button>
+        <button class="filter-btn" data-filter="warning">
+          <span class="dot warning"></span>Warnings
+        </button>
+        <button class="filter-btn" data-filter="info">
+          <span class="dot info"></span>Info
+        </button>
+      </div>
+
+      <div id="issuesList" class="issues-list"></div>
+
+    </div>
+
+    <div id="empty" class="empty hidden">
+      <div class="empty-icon">✓</div>
+      <p class="empty-title">All clear</p>
+      <p class="empty-sub">No accessibility issues detected on this page.</p>
+    </div>
+
+  </div>
+
+  <!-- Criteria Modal -->
+  <div class="modal hidden" id="criteriaModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>What We Check</h2>
+        <button class="modal-close" id="closeModal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">This scanner checks <strong>9 automated WCAG criteria</strong>. A full accessibility audit requires manual testing for color contrast, keyboard navigation, screen reader compatibility, and more.</p>
+        
+        <h3>Checked Criteria (Level A)</h3>
+        <ul class="criteria-list">
+          <li><strong>1.1.1</strong> Non-text Content — Images have alt text</li>
+          <li><strong>1.3.1</strong> Info and Relationships — Proper heading hierarchy, form labels</li>
+          <li><strong>2.4.4</strong> Link Purpose — Links have descriptive text</li>
+          <li><strong>3.1.1</strong> Language of Page — HTML lang attribute present</li>
+          <li><strong>4.1.2</strong> Name, Role, Value — Form inputs and buttons have accessible names</li>
+        </ul>
+
+        <h3>Checked Criteria (Level AA)</h3>
+        <ul class="criteria-list">
+          <li><strong>2.4.6</strong> Headings and Labels — Page has one H1</li>
+        </ul>
+
+        <h3>Not Checked (Requires Manual Testing)</h3>
+        <ul class="criteria-list not-checked">
+          <li><strong>1.4.3</strong> Contrast (Minimum) — Text has sufficient contrast</li>
+          <li><strong>2.1.1</strong> Keyboard — All functionality available via keyboard</li>
+          <li><strong>2.4.7</strong> Focus Visible — Keyboard focus indicator is visible</li>
+          <li><strong>3.2.3</strong> Consistent Navigation — Navigation is consistent</li>
+          <li><strong>4.1.3</strong> Status Messages — Screen reader announcements</li>
+          <li>...and 40+ additional criteria</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
