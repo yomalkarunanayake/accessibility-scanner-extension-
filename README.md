@@ -1,96 +1,83 @@
-# Accessibility Scanner Chrome Extension
+# Accessibility Scanner
 
-A Chrome extension to scan web pages for common accessibility issues.
+A Chrome extension that scans web pages for common accessibility issues and provides actionable fix suggestions.
 
-## 🚀 Quick Start (Loading Your Extension)
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=googlechrome&logoColor=white)
+![WCAG](https://img.shields.io/badge/WCAG-2.1-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-### Step 1: Open Chrome Extensions Page
-1. Open Google Chrome
-2. Type `chrome://extensions/` in the address bar
-3. Press Enter
+## Features
 
-### Step 2: Enable Developer Mode
-1. Look for the toggle in the top-right corner
-2. Turn ON "Developer mode"
+- 🔍 **Automated WCAG Scanning** - Detects 9 common accessibility issues across Level A and AA
+- 💡 **Fix Suggestions** - Shows code examples for each issue type
+- 📊 **Compliance Score** - Grades pages A+ to F with estimated WCAG level
+- 🎨 **Light & Dark Mode** - Toggle between themes for comfortable viewing
+- 🔄 **Grouped Issues** - Organizes repeated issues for easy navigation
+- 🎯 **Visual Highlighting** - Click any issue to highlight it on the page
 
-### Step 3: Load Your Extension
-1. Click "Load unpacked" button (top-left)
-2. Navigate to this project folder
-3. Select the `accessibility-scanner-extension` folder
-4. Click "Select Folder"
+## Installation
 
-### Step 4: Test It!
-1. Navigate to any website (try wikipedia.org)
-2. Click the extension icon in your Chrome toolbar
-3. Click "Scan This Page" button
-4. View the accessibility issues found!
+1. Download or clone this repository
+2. Open Chrome and go to `chrome://extensions/`
+3. Enable **Developer mode** (toggle in top right)
+4. Click **Load unpacked**
+5. Select the extension folder
+6. Click the extension icon to open the side panel
 
-## 📁 Project Structure
+## What We Check
 
-```
-accessibility-scanner-extension/
-├── manifest.json          # Extension configuration (like AndroidManifest.xml)
-├── src/
-│   ├── popup.html        # The UI that pops up when clicking the icon
-│   ├── popup.css         # Styling for the popup
-│   └── popup.js          # JavaScript logic for scanning
-├── icons/                # Extension icons (you'll add these)
-└── README.md            # This file
-```
+### WCAG Level A
+- **1.1.1** Non-text Content — Images have alt text
+- **1.3.1** Info and Relationships — Proper heading hierarchy, form labels
+- **2.4.4** Link Purpose — Links have descriptive text
+- **3.1.1** Language of Page — HTML lang attribute present
+- **4.1.2** Name, Role, Value — Form inputs and buttons have accessible names
 
-## 🎯 Current Features
+### WCAG Level AA
+- **2.4.6** Headings and Labels — Page has one H1
 
-The extension currently checks for:
-- ✅ Images missing alt text
-- ✅ Links with no accessible text
-- ✅ Form inputs without labels
-- ✅ Missing language attribute on page
+## Usage
 
-## 🛠️ Development Setup
+1. Navigate to any web page
+2. Click the extension icon in your toolbar
+3. Click **Scan This Page**
+4. Review the issues found
+5. Click any issue to highlight it on the page
+6. Click **💡 How to fix** to see code examples
 
-### Prerequisites
-- Google Chrome browser
-- A text editor (VS Code recommended)
-- Basic understanding of HTML/CSS/JavaScript
+## Scoring System
 
-### Making Changes
-1. Edit any file in the project
-2. Go to `chrome://extensions/`
-3. Click the refresh icon on your extension card
-4. Test your changes!
+The extension calculates a weighted score (0-100) based on:
+- **Issue severity** - Errors weighted more than warnings
+- **WCAG level** - Level A issues are weighted higher
+- **Impact** - Number of affected elements
 
-## 📚 Next Steps
+Scores translate to letter grades and estimated WCAG conformance levels.
 
-### Week 1 Goals
-- [x] Set up basic project structure
-- [x] Create simple accessibility checks
-- [ ] Add placeholder icons
-- [ ] Test on multiple websites
+## Limitations
 
-### Week 2 Goals
-- [ ] Add more accessibility checks (contrast, heading structure)
-- [ ] Improve UI/UX design
-- [ ] Add export functionality
+This scanner only checks **automated criteria**. A complete accessibility audit requires manual testing for:
+- Color contrast ratios
+- Keyboard navigation
+- Screen reader compatibility
+- Focus management
+- Touch target sizes
+- Motion and animations
+- And 40+ additional WCAG criteria
 
-### Week 3 Goals
-- [ ] Integrate axe-core library for comprehensive checks
-- [ ] Add highlighting of issues on the page
-- [ ] Create options/settings page
+**This tool is a starting point, not a certification of accessibility.**
 
-### Week 4 Goals
-- [ ] Polish and bug fixes
-- [ ] Write documentation
-- [ ] Prepare for Chrome Web Store
+## Tech Stack
 
-## 🤝 Need Help?
+- Vanilla JavaScript (no frameworks)
+- Chrome Extension Manifest V3
+- Chrome Side Panel API
+- Content Scripts for page analysis
 
-If you encounter issues:
-1. Check the Chrome DevTools console (F12)
-2. Look at the extension's background page errors in chrome://extensions
-3. Review the Chrome Extension documentation
+## License
 
-## 📖 Learning Resources
+MIT License - See LICENSE file for details
 
-- [Chrome Extension Getting Started](https://developer.chrome.com/docs/extensions/mv3/getstarted/)
-- [WCAG Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
-- [MDN Web Docs - Accessibility](https://developer.mozilla.org/en-US/docs/Web/Accessibility)
+## Contributing
+
+Issues and pull requests are welcome! Please feel free to contribute improvements.
