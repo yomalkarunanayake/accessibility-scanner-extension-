@@ -55,6 +55,76 @@ document.addEventListener('DOMContentLoaded', function () {
       title: 'Fix heading hierarchy',
       code: '<!-- Before -->\n<h2>Section</h2>\n<h4>Subsection</h4>\n\n<!-- After -->\n<h2>Section</h2>\n<h3>Subsection</h3>',
       explanation: "Don't skip heading levels. Go from H2→H3→H4, not H2→H4."
+    },
+    'Missing Page Title': {
+      title: 'Add a descriptive <title> element',
+      code: '<head>\n  <title>Page Name – Site Name</title>\n</head>',
+      explanation: 'Every page needs a unique, descriptive title. Screen readers announce it when the page loads.'
+    },
+    'Missing Main Landmark': {
+      title: 'Wrap primary content in <main>',
+      code: '<body>\n  <header>...</header>\n  <nav>...</nav>\n  <main>\n    <!-- Primary page content here -->\n  </main>\n  <footer>...</footer>\n</body>',
+      explanation: 'The <main> element (or role="main") helps screen reader users jump directly to the primary content.'
+    },
+    'Missing Navigation Landmark': {
+      title: 'Wrap navigation links in <nav>',
+      code: '<nav aria-label="Main navigation">\n  <ul>\n    <li><a href="/">Home</a></li>\n    <li><a href="/about">About</a></li>\n  </ul>\n</nav>',
+      explanation: 'Use <nav> for groups of navigation links. Add aria-label when there are multiple navs.'
+    },
+    'Multiple Main Landmarks': {
+      title: 'Use only one <main> landmark per page',
+      code: '<!-- Only one <main> allowed -->\n<main>\n  <!-- All primary content -->\n</main>\n\n<!-- Use <section> or <article> for other regions -->\n<section aria-label="Secondary content">\n  ...\n</section>',
+      explanation: 'Pages should have exactly one <main> landmark. Use <section> or <article> for additional content regions.'
+    },
+    'Positive Tabindex': {
+      title: 'Remove positive tabindex values',
+      code: '<!-- Avoid -->\n<button tabindex="3">Submit</button>\n\n<!-- Use instead -->\n<button>Submit</button>\n<!-- Or if needed -->\n<button tabindex="0">Submit</button>',
+      explanation: 'Positive tabindex values (1, 2, 3…) override the natural tab order and create confusing keyboard navigation. Use 0 or -1 only.'
+    },
+    'Keyboard Inaccessible Element': {
+      title: 'Make interactive elements keyboard accessible',
+      code: '<!-- Avoid -->\n<div onclick="doSomething()">Click me</div>\n\n<!-- Use a button instead -->\n<button onclick="doSomething()">Click me</button>\n\n<!-- Or add role and tabindex -->\n<div role="button" tabindex="0"\n  onclick="doSomething()"\n  onkeydown="handleKey(event)">Click me</div>',
+      explanation: 'Elements with click handlers must also be reachable and operable via keyboard. Native <button> and <a> elements handle this automatically.'
+    },
+    'Low Color Contrast': {
+      title: 'Increase text color contrast',
+      code: '/* WCAG requires 4.5:1 for normal text, 3:1 for large text */\n\n/* Failing example */\n.text { color: #999999; background: #ffffff; } /* ~2.8:1 */\n\n/* Passing example */\n.text { color: #595959; background: #ffffff; } /* 7:1 */\n\n/* Use a contrast checker:\n   https://webaim.org/resources/contrastchecker/ */',
+      explanation: 'Normal text needs a contrast ratio of at least 4.5:1. Large text (18pt+ or 14pt+ bold) needs 3:1. Use a contrast checker to find compliant color pairs.'
+    },
+    'Suspicious Empty Alt Text': {
+      title: 'Check if decorative alt="" is correct',
+      code: '<!-- Decorative image (correct use of empty alt) -->\n<img src="divider.png" alt="">\n\n<!-- Informative image (needs real alt text) -->\n<img src="chart-q3-revenue.png"\n  alt="Q3 revenue chart showing 40% growth">\n\n<!-- Linked image (always needs alt) -->\n<a href="/report">\n  <img src="report-icon.png" alt="Download Q3 report">\n</a>',
+      explanation: 'Images with alt="" are treated as decorative and hidden from screen readers. If the image conveys information or is inside a link, it needs descriptive alt text.'
+    },
+    'Focusable Element Removed from Tab Order': {
+      title: 'Avoid tabindex="-1" on interactive elements',
+      code: '<!-- Avoid removing native elements from tab order -->\n<button tabindex="-1">Submit</button> <!-- ❌ -->\n\n<!-- Only use tabindex="-1" for programmatic focus -->\n<button>Submit</button> <!-- ✅ naturally focusable -->\n\n<!-- Valid use: dialog managed via JS -->\n<div role="dialog">\n  <button tabindex="-1" id="first-focus">Close</button>\n</div>\n<!-- Then in JS: document.getElementById("first-focus").focus() -->',
+      explanation: 'tabindex="-1" removes an element from the natural tab order. It\'s valid when you manage focus programmatically (e.g., modals), but applied to buttons or links it makes them unreachable by keyboard.'
+    },
+    'Custom Widget Missing Tabindex': {
+      title: 'Add tabindex="0" to custom interactive widgets',
+      code: '<!-- Missing tabindex -->\n<div role="tab">Tab One</div> <!-- ❌ -->\n\n<!-- Correct: focusable and keyboard operable -->\n<div role="tab" tabindex="0"\n  onkeydown="handleTabKey(event)">Tab One</div> <!-- ✅ -->\n\n<!-- For composite widgets use roving tabindex -->\n<div role="tablist">\n  <div role="tab" tabindex="0">Tab 1</div>  <!-- active -->\n  <div role="tab" tabindex="-1">Tab 2</div> <!-- inactive -->\n</div>',
+      explanation: 'Elements with interactive ARIA roles (tab, menuitem, option, treeitem) must be keyboard focusable. Use tabindex="0" or implement the roving tabindex pattern for composite widgets.'
+    },
+    'Missing aria-expanded on Toggle': {
+      title: 'Add aria-expanded to toggle buttons',
+      code: '<!-- Missing state -->\n<button onclick="toggleMenu()">Menu</button> <!-- ❌ -->\n\n<!-- Correct: announces open/closed state -->\n<button aria-expanded="false"\n        aria-controls="main-menu"\n        onclick="toggleMenu(this)">Menu</button> <!-- ✅ -->\n\n<ul id="main-menu" hidden>...</ul>\n\n<script>\nfunction toggleMenu(btn) {\n  const expanded = btn.getAttribute("aria-expanded") === "true";\n  btn.setAttribute("aria-expanded", !expanded);\n  document.getElementById("main-menu").hidden = expanded;\n}\n</script>',
+      explanation: 'Buttons that show/hide content must communicate their state via aria-expanded="true/false". Screen readers announce this so users know whether the controlled region is open or closed.'
+    },
+    'Dialog Missing Focus Management': {
+      title: 'Add focus management attributes to dialogs',
+      code: '<!-- Native dialog (recommended) -->\n<dialog id="myDialog" aria-labelledby="dialog-title">\n  <h2 id="dialog-title">Confirm Action</h2>\n  <p>Are you sure?</p>\n  <button autofocus>Confirm</button>\n  <button onclick="document.getElementById(\'myDialog\').close()">Cancel</button>\n</dialog>\n\n<!-- Custom dialog (role-based) -->\n<div role="dialog"\n     aria-modal="true"\n     aria-labelledby="dialog-title"\n     tabindex="-1">\n  <h2 id="dialog-title">Confirm Action</h2>\n  ...\n</div>',
+      explanation: 'Dialogs must trap focus inside when open and return focus to the trigger when closed. Use the native <dialog> element with autofocus, or add aria-modal="true" and tabindex="-1" to custom dialogs and manage focus via JavaScript.'
+    },
+    'Custom Dropdown Missing Keyboard Support': {
+      title: 'Implement keyboard pattern for custom dropdowns',
+      code: '<!-- Custom listbox needs keyboard support -->\n<div role="combobox"\n     aria-expanded="false"\n     aria-haspopup="listbox"\n     aria-controls="options-list">\n  <input type="text" aria-autocomplete="list">\n</div>\n<ul role="listbox" id="options-list">\n  <li role="option" tabindex="-1">Option 1</li>\n  <li role="option" tabindex="-1">Option 2</li>\n</ul>\n<!-- Implement: Enter selects, Escape closes,\n     Arrow keys move focus between options -->',
+      explanation: 'Custom dropdowns with role="listbox" or role="combobox" must implement the ARIA keyboard interaction pattern: Enter/Space to select, Escape to close, Arrow keys to navigate options.'
+    },
+    'Missing Keyboard Handler on Interactive Element': {
+      title: 'Add keyboard event handlers alongside click handlers',
+      code: '<!-- Click-only (keyboard users cannot activate) -->\n<div onclick="doAction()">Activate</div> <!-- ❌ -->\n\n<!-- With keyboard support -->\n<div role="button" tabindex="0"\n     onclick="doAction()"\n     onkeydown="if(event.key===\'Enter\'||event.key===\' \')doAction()">Activate</div>\n\n<!-- Best: use a native element instead -->\n<button onclick="doAction()">Activate</button> <!-- ✅ -->',
+      explanation: 'Custom interactive elements need both click and keyboard handlers. Native elements like <button> and <a> handle this automatically — prefer them over divs and spans with event listeners.'
     }
   };
 
@@ -68,7 +138,21 @@ document.addEventListener('DOMContentLoaded', function () {
     'Button Without Accessible Name': { criterion: '4.1.2 Name, Role, Value', level: 'A', weight: 9 },
     'Missing H1': { criterion: '2.4.6 Headings and Labels', level: 'AA', weight: 6 },
     'Multiple H1s': { criterion: '1.3.1 Info and Relationships', level: 'A', weight: 5 },
-    'Skipped Heading Level': { criterion: '1.3.1 Info and Relationships', level: 'A', weight: 6 }
+    'Skipped Heading Level': { criterion: '1.3.1 Info and Relationships', level: 'A', weight: 6 },
+    'Missing Page Title':    { criterion: '2.4.2 Page Titled', level: 'A', weight: 9 },
+    'Missing Main Landmark': { criterion: '1.3.6 Identify Purpose', level: 'AA', weight: 6 },
+    'Missing Navigation Landmark': { criterion: '1.3.6 Identify Purpose', level: 'AA', weight: 5 },
+    'Multiple Main Landmarks':     { criterion: '1.3.6 Identify Purpose', level: 'AA', weight: 5 },
+    'Positive Tabindex':           { criterion: '2.4.3 Focus Order', level: 'A', weight: 7 },
+    'Keyboard Inaccessible Element': { criterion: '2.1.1 Keyboard', level: 'A', weight: 9 },
+    'Low Color Contrast':          { criterion: '1.4.3 Contrast (Minimum)', level: 'AA', weight: 8 },
+    'Suspicious Empty Alt Text':   { criterion: '1.1.1 Non-text Content', level: 'A', weight: 7 },
+    'Focusable Element Removed from Tab Order': { criterion: '2.1.1 Keyboard', level: 'A', weight: 8 },
+    'Custom Widget Missing Tabindex':           { criterion: '2.1.1 Keyboard', level: 'A', weight: 8 },
+    'Missing aria-expanded on Toggle':          { criterion: '4.1.2 Name, Role, Value', level: 'A', weight: 7 },
+    'Dialog Missing Focus Management':          { criterion: '2.1.2 No Keyboard Trap', level: 'A', weight: 9 },
+    'Custom Dropdown Missing Keyboard Support': { criterion: '2.1.1 Keyboard', level: 'A', weight: 8 },
+    'Missing Keyboard Handler on Interactive Element': { criterion: '2.1.1 Keyboard', level: 'A', weight: 9 }
   };
 
   // ── Theme toggle ────────────────────────────────────────────────
@@ -502,6 +586,293 @@ function scanPageForAccessibility() {
       issues.push({ type: 'Skipped Heading Level', severity: 'warning', description: 'Heading jumps from H' + prevLevel + ' to H' + currLevel + ' ("' + currText + '"). H' + (prevLevel + 1) + ' is missing.', tag: tag });
     }
   }
+
+  // Check 7: Missing page title
+  if (!document.title || document.title.trim() === '') {
+    issues.push({ type: 'Missing Page Title', severity: 'error', description: 'Page has no <title> element. Screen readers announce the title when the page loads.', tag: null });
+  }
+
+  // Check 8: Landmark regions
+  const hasMain = document.querySelector('main, [role="main"]');
+  if (!hasMain) {
+    issues.push({ type: 'Missing Main Landmark', severity: 'warning', description: 'Page has no <main> landmark. Screen reader users rely on landmarks to navigate quickly.', tag: null });
+  }
+
+  const hasNav = document.querySelector('nav, [role="navigation"]');
+  if (!hasNav && links.length > 3) {
+    issues.push({ type: 'Missing Navigation Landmark', severity: 'info', description: 'Page has multiple links but no <nav> landmark to group navigation.', tag: null });
+  }
+
+  // Check 9: Multiple <main> landmarks
+  const allMains = document.querySelectorAll('main, [role="main"]');
+  if (allMains.length > 1) {
+    allMains.forEach(function(el, idx) {
+      const tag = tagElement(el, elementIndex++);
+      issues.push({ type: 'Multiple Main Landmarks', severity: 'warning', description: 'Page has ' + allMains.length + ' <main> landmarks (instance ' + (idx + 1) + '). There should be exactly one.', tag: tag });
+    });
+  }
+
+  // Check 10: Positive tabindex
+  const posTabElements = document.querySelectorAll('[tabindex]');
+  posTabElements.forEach(function(el) {
+    const val = parseInt(el.getAttribute('tabindex'), 10);
+    if (val > 0 && isVisible(el)) {
+      const tag = tagElement(el, elementIndex++);
+      const label = el.textContent.trim().substring(0, 40) || el.tagName.toLowerCase();
+      issues.push({ type: 'Positive Tabindex', severity: 'warning', description: '<' + el.tagName.toLowerCase() + '> "' + label + '" has tabindex="' + val + '". Positive values break natural tab order.', tag: tag });
+    }
+  });
+
+  // Check 11: Click handlers on non-interactive elements (keyboard inaccessible)
+  const clickableNonInteractive = document.querySelectorAll('div[onclick], span[onclick], li[onclick], td[onclick], p[onclick]');
+  clickableNonInteractive.forEach(function(el) {
+    const hasTabindex = el.hasAttribute('tabindex');
+    const hasRole     = el.hasAttribute('role');
+    if (!hasTabindex && !hasRole && isVisible(el)) {
+      const tag = tagElement(el, elementIndex++);
+      const label = el.textContent.trim().substring(0, 40) || el.tagName.toLowerCase();
+      issues.push({ type: 'Keyboard Inaccessible Element', severity: 'error', description: '<' + el.tagName.toLowerCase() + '> "' + label + '" has an onclick handler but is not keyboard accessible (no tabindex or role).', tag: tag });
+    }
+  });
+
+  // Check 12: Color contrast (approximation using computed styles)
+  // We sample visible text elements and check contrast ratio
+  function getLuminance(r, g, b) {
+    const [rs, gs, bs] = [r, g, b].map(function(c) {
+      c = c / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+  }
+
+  function parseColor(color) {
+    if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return null;
+    const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (m) return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+    return null;
+  }
+
+  function getEffectiveBackground(el) {
+    let node = el;
+    while (node && node !== document.documentElement) {
+      const bg = window.getComputedStyle(node).backgroundColor;
+      const parsed = parseColor(bg);
+      if (parsed) return parsed;
+      node = node.parentElement;
+    }
+    return [255, 255, 255]; // fallback white
+  }
+
+  function contrastRatio(l1, l2) {
+    const lighter = Math.max(l1, l2);
+    const darker  = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  // Sample text-bearing elements (limit to 60 to keep scan fast)
+  const textSelectors = 'p, li, td, th, h1, h2, h3, h4, h5, h6, label, span, a, button';
+  const textEls = Array.from(document.querySelectorAll(textSelectors))
+    .filter(function(el) {
+      return isVisible(el) && el.textContent.trim().length > 2 && el.children.length === 0;
+    })
+    .slice(0, 60);
+
+  const contrastIssues = new Set();
+
+  textEls.forEach(function(el) {
+    const style    = window.getComputedStyle(el);
+    const fgParsed = parseColor(style.color);
+    if (!fgParsed) return;
+
+    const bgParsed = getEffectiveBackground(el);
+    const fgLum    = getLuminance(...fgParsed);
+    const bgLum    = getLuminance(...bgParsed);
+    const ratio    = contrastRatio(fgLum, bgLum);
+
+    // Determine if large text (18pt = 24px, or 14pt bold = ~18.67px bold)
+    const fontSize  = parseFloat(style.fontSize);
+    const fontWeight = parseInt(style.fontWeight, 10);
+    const isLarge   = fontSize >= 24 || (fontSize >= 18.67 && fontWeight >= 700);
+    const threshold = isLarge ? 3.0 : 4.5;
+
+    if (ratio < threshold && ratio > 1) {
+      const sig = fgParsed.join(',') + '|' + bgParsed.join(',');
+      if (!contrastIssues.has(sig)) {
+        contrastIssues.add(sig);
+        const tag = tagElement(el, elementIndex++);
+        const textSnippet = el.textContent.trim().substring(0, 40);
+        issues.push({
+          type: 'Low Color Contrast',
+          severity: 'error',
+          description: '"' + textSnippet + '" has a contrast ratio of ' + ratio.toFixed(2) + ':1 (needs ' + threshold + ':1). Text: rgb(' + fgParsed.join(',') + '), Background: rgb(' + bgParsed.join(',') + ').',
+          tag: tag
+        });
+      }
+    }
+  });
+
+  // Check 13: Suspicious empty alt text (alt="" on linked or complex images)
+  images.forEach(function(img, index) {
+    if (img.getAttribute('alt') === '' && isVisible(img)) {
+      const isLinked  = img.closest('a') !== null;
+      const hasTitle  = img.getAttribute('title');
+      const src       = (img.getAttribute('src') || '').toLowerCase();
+      // Flag if inside a link (must have alt) or src suggests content (photo, chart, graph, etc.)
+      const looksInformational = /photo|chart|graph|diagram|banner|hero|product|screenshot|logo/.test(src);
+      if (isLinked) {
+        const tag = tagElement(img, elementIndex++);
+        issues.push({ type: 'Suspicious Empty Alt Text', severity: 'error', description: 'Image #' + (index + 1) + ' is inside a link but has alt="". Linked images must have descriptive alt text.', tag: tag });
+      } else if (looksInformational && !hasTitle) {
+        const tag = tagElement(img, elementIndex++);
+        issues.push({ type: 'Suspicious Empty Alt Text', severity: 'warning', description: 'Image #' + (index + 1) + ' has alt="" but its filename suggests it may be informational: "' + src.split('/').pop() + '".', tag: tag });
+      }
+    }
+  });
+
+  // ── KEYBOARD NAVIGATION CHECKS ─────────────────────────────────
+
+  // Check 14: Native interactive elements removed from tab order without justification
+  const nativeInteractive = document.querySelectorAll('a[href], button, input, select, textarea');
+  nativeInteractive.forEach(function(el) {
+    if (el.getAttribute('tabindex') === '-1' && isVisible(el)) {
+      const inDialog = el.closest('[role="dialog"], dialog, [aria-modal="true"]');
+      if (!inDialog) {
+        const tag = tagElement(el, elementIndex++);
+        const label = (el.getAttribute('aria-label') || el.textContent.trim() || el.getAttribute('type') || el.tagName.toLowerCase()).substring(0, 40);
+        issues.push({
+          type: 'Focusable Element Removed from Tab Order',
+          severity: 'error',
+          description: '<' + el.tagName.toLowerCase() + '> "' + label + '" has tabindex="-1", making it unreachable by keyboard navigation.',
+          tag: tag
+        });
+      }
+    }
+  });
+
+  // Check 15: Custom ARIA widgets missing tabindex (not keyboard reachable)
+  const interactiveRoles = ['tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'treeitem', 'gridcell', 'row', 'columnheader', 'rowheader'];
+  const customWidgets = document.querySelectorAll(interactiveRoles.map(r => '[role="' + r + '"]').join(','));
+  customWidgets.forEach(function(el) {
+    const hasTabindex = el.hasAttribute('tabindex');
+    const parent = el.parentElement;
+    const parentHasRovingTabindex = parent && parent.querySelector('[tabindex="0"]');
+    if (!hasTabindex && !parentHasRovingTabindex && isVisible(el)) {
+      const tag = tagElement(el, elementIndex++);
+      const roleVal = el.getAttribute('role');
+      const label = (el.getAttribute('aria-label') || el.textContent.trim()).substring(0, 40);
+      issues.push({
+        type: 'Custom Widget Missing Tabindex',
+        severity: 'error',
+        description: 'Element with role="' + roleVal + '" ("' + label + '") has no tabindex — it cannot be reached by keyboard.',
+        tag: tag
+      });
+    }
+  });
+
+  // Check 16: Toggle buttons missing aria-expanded
+  const toggleCandidates = document.querySelectorAll('button[aria-controls], button[data-toggle], button[data-bs-toggle], button[data-target]');
+  toggleCandidates.forEach(function(el) {
+    if (!el.hasAttribute('aria-expanded') && isVisible(el)) {
+      const tag = tagElement(el, elementIndex++);
+      const label = (el.getAttribute('aria-label') || el.textContent.trim()).substring(0, 40);
+      issues.push({
+        type: 'Missing aria-expanded on Toggle',
+        severity: 'warning',
+        description: 'Button "' + label + '" controls another element but is missing aria-expanded to announce its open/closed state.',
+        tag: tag
+      });
+    }
+  });
+
+  // Also catch buttons whose text suggests they are toggles
+  const toggleKeywords = /\b(menu|nav|dropdown|collapse|expand|toggle|accordion|drawer|sidebar)\b/i;
+  document.querySelectorAll('button').forEach(function(btn) {
+    const label = (btn.getAttribute('aria-label') || btn.textContent.trim()).substring(0, 80);
+    if (toggleKeywords.test(label) && !btn.hasAttribute('aria-expanded') && !btn.hasAttribute('aria-controls') && isVisible(btn)) {
+      const tag = tagElement(btn, elementIndex++);
+      issues.push({
+        type: 'Missing aria-expanded on Toggle',
+        severity: 'info',
+        description: 'Button "' + label.substring(0, 40) + '" may toggle content but has no aria-expanded. Add it if this button shows/hides a region.',
+        tag: tag
+      });
+    }
+  });
+
+  // Check 17: Dialog/modal elements missing focus management attributes
+  const dialogs = document.querySelectorAll('dialog, [role="dialog"], [role="alertdialog"]');
+  dialogs.forEach(function(el) {
+    const hasAriaModal   = el.getAttribute('aria-modal') === 'true';
+    const hasAriaLabel   = el.hasAttribute('aria-label') || el.hasAttribute('aria-labelledby');
+    const isNativeDialog = el.tagName.toLowerCase() === 'dialog';
+    const hasTabindex    = el.hasAttribute('tabindex');
+
+    const missingAttrs = [];
+    if (!isNativeDialog && !hasAriaModal) missingAttrs.push('aria-modal="true"');
+    if (!hasAriaLabel) missingAttrs.push('aria-label or aria-labelledby');
+    if (!isNativeDialog && !hasTabindex) missingAttrs.push('tabindex="-1"');
+
+    if (missingAttrs.length > 0 && isVisible(el)) {
+      const tag = tagElement(el, elementIndex++);
+      issues.push({
+        type: 'Dialog Missing Focus Management',
+        severity: 'error',
+        description: 'Dialog is missing: ' + missingAttrs.join(', ') + '. Without these, keyboard focus may escape the dialog.',
+        tag: tag
+      });
+    }
+  });
+
+  // Check 18: Custom dropdowns missing keyboard support signals
+  const customDropdowns = document.querySelectorAll('[role="listbox"], [role="combobox"]');
+  customDropdowns.forEach(function(el) {
+    const roleVal       = el.getAttribute('role');
+    const hasExpanded   = el.hasAttribute('aria-expanded');
+    const hasControls   = el.hasAttribute('aria-controls') || el.hasAttribute('aria-owns');
+    const hasActiveDesc = el.hasAttribute('aria-activedescendant');
+
+    const missingAttrs = [];
+    if (roleVal === 'combobox' && !hasExpanded) missingAttrs.push('aria-expanded');
+    if (!hasControls && !hasActiveDesc) missingAttrs.push('aria-controls or aria-activedescendant');
+
+    if (missingAttrs.length > 0 && isVisible(el)) {
+      const tag = tagElement(el, elementIndex++);
+      const label = (el.getAttribute('aria-label') || el.textContent.trim().substring(0, 40));
+      issues.push({
+        type: 'Custom Dropdown Missing Keyboard Support',
+        severity: 'warning',
+        description: 'role="' + roleVal + '" ("' + label + '") is missing: ' + missingAttrs.join(', ') + '. Keyboard users may not be able to operate this widget.',
+        tag: tag
+      });
+    }
+  });
+
+  // Check 19: onclick handlers on non-native elements without keyboard equivalents
+  const onclickElements = document.querySelectorAll('[onclick]');
+  onclickElements.forEach(function(el) {
+    const tagName = el.tagName.toLowerCase();
+    const isNativelyKeyboardOperable = ['a', 'button', 'input', 'select', 'textarea'].includes(tagName);
+    if (isNativelyKeyboardOperable) return;
+
+    const hasKeyHandler = el.hasAttribute('onkeydown') || el.hasAttribute('onkeyup') || el.hasAttribute('onkeypress');
+    const hasRole       = el.hasAttribute('role');
+    const hasTabindex   = el.hasAttribute('tabindex');
+
+    // Skip elements already caught by check 11 (div/span/li/td/p with no role or tabindex)
+    const alreadyCaught = ['div', 'span', 'li', 'td', 'p'].includes(tagName) && !hasTabindex && !hasRole;
+    if (alreadyCaught) return;
+
+    if (!hasKeyHandler && isVisible(el)) {
+      const eleTag = tagElement(el, elementIndex++);
+      const label = (el.getAttribute('aria-label') || el.textContent.trim()).substring(0, 40);
+      issues.push({
+        type: 'Missing Keyboard Handler on Interactive Element',
+        severity: 'warning',
+        description: '<' + tagName + '> "' + label + '" has onclick but no keyboard handler (onkeydown/onkeyup). Keyboard users cannot activate it.',
+        tag: eleTag
+      });
+    }
+  });
 
   return {
     totalIssues: issues.length,
