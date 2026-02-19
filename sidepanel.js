@@ -184,6 +184,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // ── Score modal ─────────────────────────────────────────────────
+  const scoreModal      = document.getElementById('scoreModal');
+  const closeScoreModal = document.getElementById('closeScoreModal');
+
+  if (closeScoreModal && scoreModal) {
+    closeScoreModal.addEventListener('click', function() {
+      scoreModal.classList.add('hidden');
+    });
+    scoreModal.addEventListener('click', function(e) {
+      if (e.target === scoreModal) scoreModal.classList.add('hidden');
+    });
+  }
+
+  // Tab switching inside the score modal
+  document.querySelectorAll('.modal-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.modal-tab-panel').forEach(p => p.classList.add('hidden'));
+      this.classList.add('active');
+      document.getElementById('tab-' + this.dataset.tab).classList.remove('hidden');
+    });
+  });
+
   // Escape HTML so descriptions never render as live DOM nodes
   function esc(str) {
     return String(str)
@@ -254,48 +277,177 @@ document.addEventListener('DOMContentLoaded', function () {
   function calculateScore(issues, elementCounts) {
     if (issues.length === 0) return { score: 100, grade: 'A+', level: 'AA' };
 
-    // Calculate weighted penalty
-    let totalPenalty = 0;
-    let maxPossiblePenalty = 0;
+    // ── New scoring model ────────────────────────────────────────
+    // The old model divided by totalElements which made large pages always score ~100.
+    // New model: start at 100, deduct points per unique criterion violated + per-instance
+    // penalty that has diminishing returns (so 64 empty links doesn't score same as 6).
 
+    // Step 1: Group issues by type and count unique criteria violated
+    const byType = {};
     issues.forEach(function(issue) {
-      const mapping = wcagMapping[issue.type];
-      if (mapping) {
-        totalPenalty += mapping.weight;
-      }
+      if (!byType[issue.type]) byType[issue.type] = { severity: issue.severity, count: 0 };
+      byType[issue.type].count++;
     });
 
-    // Max penalty is if every element had an issue
-    const totalElements = elementCounts.images + elementCounts.links + 
-                         elementCounts.inputs + elementCounts.buttons;
-    maxPossiblePenalty = totalElements * 10; // Max weight is 10
+    // Step 2: Deductions per issue type
+    // Base deduction for the criterion being violated at all (presence penalty)
+    // + scaled instance penalty with sqrt dampening so volume doesn't dominate
+    let totalDeduction = 0;
 
-    // Calculate score (0-100)
-    const rawScore = Math.max(0, 100 - (totalPenalty / maxPossiblePenalty * 100));
-    const score = Math.round(rawScore);
+    Object.keys(byType).forEach(function(type) {
+      const mapping  = wcagMapping[type];
+      if (!mapping) return;
+      const group    = byType[type];
+      const weight   = mapping.weight;           // 5–10
+      const level    = mapping.level;            // 'A' or 'AA'
+      const count    = group.count;
+      const severity = group.severity;
 
-    // Determine grade
+      // Base deduction: how serious is it that this criterion is violated at all?
+      // Level A errors: 8–12 pts, Level A warnings: 4–7 pts, Level AA errors: 5–9 pts
+      let base;
+      if (severity === 'error'   && level === 'A')  base = 4 + weight * 0.4;   // 7.6–8
+      else if (severity === 'error'   && level === 'AA') base = 2 + weight * 0.3;   // 4.4–5
+      else if (severity === 'warning' && level === 'A')  base = 1.5 + weight * 0.2; // 2.9–3.5
+      else if (severity === 'warning' && level === 'AA') base = 1 + weight * 0.15;  // 1.9–2.5
+      else base = 0.5;                                                               // info
+
+      // Instance bonus: sqrt(count) with 0.22 factor so volume matters but doesn't dominate
+      const instanceBonus = (weight * 0.22) * Math.sqrt(count);
+
+      totalDeduction += base + instanceBonus;
+    });
+
+    // Normalise: cap total deduction at 100 so score never goes below 0
+    const rawScore = Math.max(0, Math.round(100 - totalDeduction));
+
+    // Determine WCAG level based on which criteria are violated.
+    // Separate hard errors from advisory warnings/info within each level.
+    const levelAErrors   = issues.filter(i => i.severity === 'error'  && wcagMapping[i.type] && wcagMapping[i.type].level === 'A').length;
+    const levelAAErrors  = issues.filter(i => i.severity === 'error'  && wcagMapping[i.type] && wcagMapping[i.type].level === 'AA').length;
+    const levelAAdvisory = issues.filter(i => i.severity !== 'error'  && wcagMapping[i.type] && wcagMapping[i.type].level === 'A').length;
+
+    let level;
+    if (levelAErrors === 0 && levelAAErrors === 0 && levelAAdvisory === 0) {
+      level = 'AA';        // No violations → likely AA conformant
+    } else if (levelAErrors === 0 && levelAAErrors === 0) {
+      level = 'AA*';       // Only advisory warnings → probably AA with caveats
+    } else if (levelAErrors === 0) {
+      level = 'A';         // Level A clear, but AA errors exist → conforming at A only
+    } else {
+      level = 'Failing';   // Level A errors present → not conforming
+    }
+
+    // Graduated ceiling based on how many Level A errors exist.
+    // 1 error → max 91 (A-), 2–3 → max 84 (B), 4–9 → max 79 (C+), 10+ → max 69 (D+)
+    // Prevents a single minor issue from tanking an otherwise clean page to C+.
+    let finalScore = rawScore;
+    if      (levelAErrors >= 10) finalScore = Math.min(rawScore, 69);
+    else if (levelAErrors >= 4)  finalScore = Math.min(rawScore, 79);
+    else if (levelAErrors >= 2)  finalScore = Math.min(rawScore, 84);
+    else if (levelAErrors === 1) finalScore = Math.min(rawScore, 91);
+    else if (levelAAErrors > 0)  finalScore = Math.min(rawScore, 94);
+
+    // Grade from final score
     let grade = 'F';
-    if (score >= 97) grade = 'A+';
-    else if (score >= 93) grade = 'A';
-    else if (score >= 90) grade = 'A-';
-    else if (score >= 87) grade = 'B+';
-    else if (score >= 83) grade = 'B';
-    else if (score >= 80) grade = 'B-';
-    else if (score >= 77) grade = 'C+';
-    else if (score >= 73) grade = 'C';
-    else if (score >= 70) grade = 'C-';
-    else if (score >= 60) grade = 'D';
+    if (finalScore >= 97) grade = 'A+';
+    else if (finalScore >= 93) grade = 'A';
+    else if (finalScore >= 90) grade = 'A-';
+    else if (finalScore >= 87) grade = 'B+';
+    else if (finalScore >= 83) grade = 'B';
+    else if (finalScore >= 80) grade = 'B-';
+    else if (finalScore >= 77) grade = 'C+';
+    else if (finalScore >= 73) grade = 'C';
+    else if (finalScore >= 70) grade = 'C-';
+    else if (finalScore >= 60) grade = 'D';
 
-    // Determine WCAG level (conservative estimate)
-    const errorCount = issues.filter(i => i.severity === 'error').length;
-    const levelAIssues = issues.filter(i => wcagMapping[i.type] && wcagMapping[i.type].level === 'A').length;
-    
-    let level = 'Failing';
-    if (errorCount === 0 && levelAIssues === 0) level = 'AA';
-    else if (errorCount === 0) level = 'A';
+    return { score: finalScore, grade, level };
+  }
 
-    return { score, grade, level };
+  // ── Open & populate the score modal ────────────────────────────
+  function openScoreModal(scoreData, issues) {
+    // Header hero
+    const gradeEl = document.getElementById('sm-grade');
+    gradeEl.textContent  = scoreData.grade;
+    gradeEl.className    = 'score-hero-grade score-grade grade-' + scoreData.grade.replace('+','plus').replace('-','minus').toLowerCase();
+    document.getElementById('sm-score').textContent = scoreData.score + '/100';
+    document.getElementById('sm-level').textContent = 'WCAG Level: ' + scoreData.level;
+
+    // Highlight active WCAG level row
+    const levelMap = { 'AA': 'wl-aa', 'AA*': 'wl-aastar', 'A': 'wl-a', 'Failing': 'wl-fail' };
+    ['wl-aa','wl-aastar','wl-a','wl-fail'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('active-level', id === levelMap[scoreData.level]);
+    });
+
+    // Build per-issue-type breakdown table
+    const byType = {};
+    issues.forEach(function(issue) {
+      if (!byType[issue.type]) byType[issue.type] = { severity: issue.severity, count: 0 };
+      byType[issue.type].count++;
+    });
+
+    let totalDeduction = 0;
+    const rows = [];
+
+    Object.keys(byType).sort().forEach(function(type) {
+      const mapping = wcagMapping[type];
+      if (!mapping) return;
+      const { severity, count } = byType[type];
+      const { weight, level } = mapping;
+
+      let base;
+      if (severity === 'error'   && level === 'A')  base = 4 + weight * 0.4;
+      else if (severity === 'error'   && level === 'AA') base = 2 + weight * 0.3;
+      else if (severity === 'warning' && level === 'A')  base = 1.5 + weight * 0.2;
+      else if (severity === 'warning' && level === 'AA') base = 1 + weight * 0.15;
+      else base = 0.5;
+      const instanceBonus = (weight * 0.22) * Math.sqrt(count);
+      const rowTotal      = base + instanceBonus;
+      totalDeduction     += rowTotal;
+
+      rows.push({
+        type, count, severity, level,
+        base: base.toFixed(1),
+        bonus: instanceBonus.toFixed(1),
+        total: rowTotal.toFixed(1)
+      });
+    });
+
+    // Sort by total deduction descending
+    rows.sort(function(a, b) { return parseFloat(b.total) - parseFloat(a.total); });
+
+    let tableHtml =
+      '<div class="breakdown-row breakdown-row-header">' +
+        '<span>Issue type</span>' +
+        '<span style="text-align:center">Count</span>' +
+        '<span style="text-align:right">Base</span>' +
+        '<span style="text-align:right">Total</span>' +
+      '</div>';
+
+    rows.forEach(function(r) {
+      tableHtml +=
+        '<div class="breakdown-row">' +
+          '<span class="bdr-type">' + esc(r.type) + ' <small style="color:var(--muted);font-size:10px;">(' + r.level + ' ' + r.severity + ')</small></span>' +
+          '<span class="bdr-count">×' + r.count + '</span>' +
+          '<span class="bdr-base">−' + r.base + '</span>' +
+          '<span class="bdr-total ' + r.severity + '">−' + r.total + '</span>' +
+        '</div>';
+    });
+
+    document.getElementById('sm-breakdown-table').innerHTML = tableHtml;
+    document.getElementById('sm-total-deduction').textContent =
+      '−' + Math.min(totalDeduction, 100).toFixed(1) + ' pts → ' + scoreData.score + '/100';
+
+    // Reset to breakdown tab
+    document.querySelectorAll('.modal-tab').forEach(function(t) {
+      t.classList.toggle('active', t.dataset.tab === 'breakdown');
+    });
+    document.querySelectorAll('.modal-tab-panel').forEach(function(p) {
+      p.classList.toggle('hidden', p.id !== 'tab-breakdown');
+    });
+
+    scoreModal.classList.remove('hidden');
   }
 
   // ── Summary strip
@@ -309,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="summary-section score-section">' +
         '<div class="score-header">' +
           '<span class="summary-label">Score</span>' +
-          '<button class="info-btn-inline" id="criteriaBtn" aria-label="What we check" title="What we check">' +
+          '<button class="info-btn-inline" id="criteriaBtn" aria-label="Score breakdown and what we check" title="Score breakdown">' +
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
               '<circle cx="12" cy="12" r="10"/>' +
               '<line x1="12" y1="16" x2="12" y2="12"/>' +
@@ -336,12 +488,12 @@ document.addEventListener('DOMContentLoaded', function () {
         '</span>' +
       '</div>';
     
-    // Attach info button click listener
+    // Attach info button → opens score modal (with live data)
     setTimeout(function() {
       const criteriaBtn = document.getElementById('criteriaBtn');
       if (criteriaBtn) {
         criteriaBtn.addEventListener('click', function() {
-          document.getElementById('criteriaModal').classList.remove('hidden');
+          openScoreModal(scoreData, scanResult.issues);
         });
       }
     }, 10);
