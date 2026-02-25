@@ -241,7 +241,34 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
 
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+
+      // Check if this is a page we can actually scan
+      const url = tab.url || '';
+      if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('edge://') || url.startsWith('about:')) {
+        loadingDiv.classList.add('hidden');
+        statusPill.textContent = 'error';
+        statusPill.className = 'status-pill';
+        issuesList.innerHTML = '<div class="issue-card error"><div class="severity-bar"></div><div class="issue-body"><div class="issue-type">Cannot Scan This Page</div><div class="issue-description">Browser and extension pages cannot be scanned. Navigate to a regular website and try again.</div></div></div>';
+        resultsDiv.classList.remove('hidden');
+        return;
+      }
+
+      // If tab is still loading, wait for it
+      if (tab.status === 'loading') {
+        await new Promise(function(resolve) {
+          function onUpdated(tabId, info) {
+            if (tabId === tab.id && info.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(onUpdated);
+              resolve();
+            }
+          }
+          chrome.tabs.onUpdated.addListener(onUpdated);
+          // Fallback timeout after 10s
+          setTimeout(resolve, 10000);
+        });
+      }
+
       const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: scanPageForAccessibility
@@ -271,7 +298,14 @@ document.addEventListener('DOMContentLoaded', function () {
       loadingDiv.classList.add('hidden');
       statusPill.textContent = 'error';
       statusPill.className = 'status-pill';
-      issuesList.innerHTML = '<div class="issue-card error"><div class="severity-bar"></div><div class="issue-body"><div class="issue-type">Scan Failed</div><div class="issue-description">Could not scan this page. Try refreshing and scanning again.</div></div></div>';
+      const msg = error && error.message
+        ? error.message.includes('Cannot access') || error.message.includes('permissions')
+          ? 'This page cannot be scanned due to browser restrictions. Try a regular website.'
+          : error.message.includes('No tab')
+          ? 'No active tab found. Click on a webpage first, then scan.'
+          : 'Could not scan this page. Try refreshing and scanning again.'
+        : 'Could not scan this page. Try refreshing and scanning again.';
+      issuesList.innerHTML = '<div class="issue-card error"><div class="severity-bar"></div><div class="issue-body"><div class="issue-type">Scan Failed</div><div class="issue-description">' + msg + '</div></div></div>';
       resultsDiv.classList.remove('hidden');
     } finally {
       scanButton.disabled = false;
@@ -634,6 +668,11 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   }
+
+  // ── Close panel on tab switch ───────────────────────────────────
+  chrome.tabs.onActivated.addListener(function() {
+    window.close();
+  });
 
   // ── Export PDF ──────────────────────────────────────────────────
   const exportPdfBtn = document.getElementById('exportPdfBtn');
