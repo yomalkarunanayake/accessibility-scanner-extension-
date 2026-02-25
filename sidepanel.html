@@ -52,6 +52,20 @@
         <span class="btn-label">Scan This Page</span>
         <span class="btn-icon">→</span>
       </button>
+      <div class="focus-order-row">
+        <button id="focusOrderBtn" class="focus-order-btn">
+          <span class="focus-order-nums">1&thinsp;2&thinsp;3</span>
+          <span class="btn-label">Show Focus Order</span>
+        </button>
+        <div class="focus-info-wrap">
+          <button class="focus-info-btn" aria-label="What is focus order?">?</button>
+          <div class="focus-tooltip" role="tooltip">
+            <strong>Focus Order Visualiser</strong>
+            Numbered badges show the exact sequence keyboard users Tab through interactive elements.
+            <span style="display:block;margin-top:6px;opacity:0.75;">🔵 Normal &nbsp; 🟣 Positive tabindex &nbsp; ⚫ Skipped</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="loading" class="loading hidden">
@@ -89,7 +103,7 @@
     </div>
 
     <div class="export-bar hidden" id="exportBar">
-      <button class="export-btn" id="exportPdfBtn">Export Report</button>
+      <button class="export-btn" id="exportPdfBtn">Export PDF Report</button>
     </div>
 
   </div>

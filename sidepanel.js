@@ -1,16 +1,18 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const scanButton   = document.getElementById('scanButton');
-  const resultsDiv   = document.getElementById('results');
-  const issuesList   = document.getElementById('issuesList');
-  const loadingDiv   = document.getElementById('loading');
-  const emptyDiv     = document.getElementById('empty');
-  const summaryStrip = document.getElementById('summaryStrip');
-  const statusPill   = document.getElementById('statusPill');
-  const themeToggle  = document.getElementById('themeToggle');
+  const scanButton      = document.getElementById('scanButton');
+  const focusOrderBtn   = document.getElementById('focusOrderBtn');
+  const resultsDiv      = document.getElementById('results');
+  const issuesList      = document.getElementById('issuesList');
+  const loadingDiv      = document.getElementById('loading');
+  const emptyDiv        = document.getElementById('empty');
+  const summaryStrip    = document.getElementById('summaryStrip');
+  const statusPill      = document.getElementById('statusPill');
+  const themeToggle     = document.getElementById('themeToggle');
 
-  let allIssues = [];
-  let lastScanResult = null;
-  let lastScoreData  = null;
+  let allIssues       = [];
+  let lastScanResult  = null;
+  let lastScoreData   = null;
+  let focusOrderActive = false;
   // ── Fix suggestions database ────────────────────────────────────
   const fixSuggestions = {
     'Missing Alt Text': {
@@ -672,6 +674,38 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Close panel on tab switch ───────────────────────────────────
   chrome.tabs.onActivated.addListener(function() {
     window.close();
+  });
+
+  // ── Focus Order Visualiser ──────────────────────────────────────
+  focusOrderBtn.addEventListener('click', async function() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) return;
+
+      if (!focusOrderActive) {
+        // Inject badges
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: injectFocusOrderBadges
+        });
+        focusOrderActive = true;
+        focusOrderBtn.classList.add('active');
+        focusOrderBtn.querySelector('.btn-label').textContent = 'Clear Focus Order';
+        focusOrderBtn.querySelector('.focus-order-nums').textContent = '✕';
+      } else {
+        // Clear badges
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: clearFocusOrderBadges
+        });
+        focusOrderActive = false;
+        focusOrderBtn.classList.remove('active');
+        focusOrderBtn.querySelector('.btn-label').textContent = 'Show Focus Order';
+        focusOrderBtn.querySelector('.focus-order-nums').textContent = '1\u20092\u20093';
+      }
+    } catch (err) {
+      console.error('Focus order error:', err);
+    }
   });
 
   // ── Export PDF ──────────────────────────────────────────────────
@@ -1418,4 +1452,136 @@ function highlightElement(tag) {
     }
     label.remove();
   }, 5000);
+}
+
+// ── PAGE-CONTEXT: Inject focus order badges ──────────────────────
+function injectFocusOrderBadges() {
+  // Clear any existing badges first
+  document.querySelectorAll('[data-a11y-focus-badge]').forEach(function(b) { b.remove(); });
+
+  // Collect all focusable elements in DOM order
+  var candidates = Array.from(document.querySelectorAll(
+    'a[href], button, input, select, textarea, details, [tabindex],' +
+    '[contenteditable="true"], audio[controls], video[controls]'
+  ));
+
+  // Filter to visible + not explicitly removed from tab order by tabindex="-1"
+  // BUT include tabindex="-1" elements that are custom widgets — they still appear
+  // in the visual order even if unreachable; flag them differently
+  function isVisible(el) {
+    if (!el.offsetParent && el.tagName !== 'BODY') return false;
+    var s = window.getComputedStyle(el);
+    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+  }
+
+  var focusable = candidates.filter(function(el) {
+    return isVisible(el);
+  });
+
+  // Sort: elements with positive tabindex come first (in tabindex order),
+  // then everything else in DOM order (tabindex 0 / no tabindex)
+  var withPositive = focusable.filter(function(el) {
+    return parseInt(el.getAttribute('tabindex'), 10) > 0;
+  }).sort(function(a, b) {
+    return parseInt(a.getAttribute('tabindex'), 10) - parseInt(b.getAttribute('tabindex'), 10);
+  });
+
+  var withoutPositive = focusable.filter(function(el) {
+    var ti = parseInt(el.getAttribute('tabindex'), 10);
+    return isNaN(ti) || ti <= 0;
+  });
+
+  var ordered = withPositive.concat(withoutPositive);
+
+  // Inject stylesheet once
+  if (!document.getElementById('a11y-focus-order-styles')) {
+    var style = document.createElement('style');
+    style.id = 'a11y-focus-order-styles';
+    style.textContent =
+      '[data-a11y-focus-badge]{' +
+        'position:absolute;z-index:2147483647;' +
+        'width:22px;height:22px;border-radius:50%;' +
+        'background:#1d4ed8;color:#fff;' +
+        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;' +
+        'font-size:10px;font-weight:700;line-height:22px;text-align:center;' +
+        'box-shadow:0 2px 8px rgba(29,78,216,0.55),0 0 0 2px #fff;' +
+        'pointer-events:none;' +
+        'transition:opacity 0.15s;' +
+      '}' +
+      '[data-a11y-focus-badge].removed{' +
+        'background:#6b7280;' +
+        'box-shadow:0 2px 8px rgba(107,114,128,0.4),0 0 0 2px #fff;' +
+        'opacity:0.65;' +
+      '}' +
+      '[data-a11y-focus-badge].positive{' +
+        'background:#7c3aed;' +
+        'box-shadow:0 2px 8px rgba(124,58,237,0.55),0 0 0 2px #fff;' +
+      '}';
+    document.head.appendChild(style);
+  }
+
+  ordered.forEach(function(el, i) {
+    var tabindex  = parseInt(el.getAttribute('tabindex'), 10);
+    var isRemoved = tabindex === -1;
+    var isPositive = tabindex > 0;
+
+    var rect = el.getBoundingClientRect();
+    var scrollX = window.scrollX;
+    var scrollY = window.scrollY;
+
+    var badge = document.createElement('div');
+    badge.setAttribute('data-a11y-focus-badge', 'true');
+    badge.textContent = i + 1;
+    if (isRemoved) badge.classList.add('removed');
+    if (isPositive) badge.classList.add('positive');
+
+    // Position relative to document
+    badge.style.top  = (rect.top  + scrollY - 11) + 'px';
+    badge.style.left = (rect.left + scrollX - 11) + 'px';
+
+    // Tooltip
+    var tag = el.tagName.toLowerCase();
+    var label = el.getAttribute('aria-label') || el.textContent.trim().slice(0, 30) || el.getAttribute('placeholder') || el.getAttribute('type') || '';
+    badge.title = '#' + (i + 1) + ' <' + tag + '>' +
+      (label ? ' "' + label + '"' : '') +
+      (isRemoved  ? ' — tabindex="-1" (removed from tab order)' : '') +
+      (isPositive ? ' — tabindex="' + tabindex + '" (explicit order)' : '');
+
+    document.body.appendChild(badge);
+  });
+
+  // Add legend
+  if (!document.getElementById('a11y-focus-legend')) {
+    var legend = document.createElement('div');
+    legend.id = 'a11y-focus-legend';
+    legend.style.cssText =
+      'position:fixed;bottom:16px;right:16px;z-index:2147483647;' +
+      'background:#111827;color:#f9fafb;border-radius:10px;padding:12px 16px;' +
+      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:11px;line-height:1.8;' +
+      'box-shadow:0 8px 24px rgba(0,0,0,0.4);min-width:190px;pointer-events:none;';
+    legend.innerHTML =
+      '<div style="font-weight:700;font-size:12px;margin-bottom:6px;letter-spacing:0.02em;">Focus Order</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+        '<div style="width:16px;height:16px;border-radius:50%;background:#1d4ed8;flex-shrink:0;box-shadow:0 0 0 2px #fff2;"></div>' +
+        '<span>Normal tab order</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+        '<div style="width:16px;height:16px;border-radius:50%;background:#7c3aed;flex-shrink:0;box-shadow:0 0 0 2px #fff2;"></div>' +
+        '<span>Positive tabindex</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<div style="width:16px;height:16px;border-radius:50%;background:#6b7280;flex-shrink:0;opacity:0.65;box-shadow:0 0 0 2px #fff2;"></div>' +
+        '<span>tabindex="-1" (skip)</span>' +
+      '</div>';
+    document.body.appendChild(legend);
+  }
+}
+
+// ── PAGE-CONTEXT: Clear focus order badges ───────────────────────
+function clearFocusOrderBadges() {
+  document.querySelectorAll('[data-a11y-focus-badge]').forEach(function(b) { b.remove(); });
+  var style = document.getElementById('a11y-focus-order-styles');
+  if (style) style.remove();
+  var legend = document.getElementById('a11y-focus-legend');
+  if (legend) legend.remove();
 }
