@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="summary-divider"></div>' +
       '<div class="summary-section">' +
         '<span class="summary-label">WCAG Level</span>' +
-        '<span class="summary-stats wcag-level">' + scoreData.level + '</span>' +
+        '<span class="summary-stats wcag-level wcag-level-' + scoreData.level.replace('*', 'star').toLowerCase() + '">' + scoreData.level + '</span>' +
       '</div>' +
       '<div class="summary-divider"></div>' +
       '<div class="summary-section">' +
@@ -718,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function() {
         generatePdfReport(lastScanResult, lastScoreData);
         exportPdfBtn.classList.remove('exporting');
-        exportPdfBtn.innerHTML = 'Export PDF Report';
+        exportPdfBtn.innerHTML = 'Export Report';
       }, 80);
     });
   }
