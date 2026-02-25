@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const themeToggle  = document.getElementById('themeToggle');
 
   let allIssues = [];
+  let lastScanResult = null;
+  let lastScoreData  = null;
   // ── Fix suggestions database ────────────────────────────────────
   const fixSuggestions = {
     'Missing Alt Text': {
@@ -259,6 +261,9 @@ document.addEventListener('DOMContentLoaded', function () {
         buildSummary(scanResult, scoreData);
         renderIssues(allIssues, 'all');
         resultsDiv.classList.remove('hidden');
+        lastScanResult = scanResult;
+        lastScoreData  = scoreData;
+        document.getElementById('exportBar').classList.remove('hidden');
       }
 
     } catch (error) {
@@ -629,6 +634,237 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   }
+
+  // ── Export PDF ──────────────────────────────────────────────────
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener('click', function() {
+      if (!lastScanResult || !lastScoreData) return;
+      exportPdfBtn.classList.add('exporting');
+      exportPdfBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg> Preparing…';
+      setTimeout(function() {
+        generatePdfReport(lastScanResult, lastScoreData);
+        exportPdfBtn.classList.remove('exporting');
+        exportPdfBtn.innerHTML = 'Export PDF Report';
+      }, 80);
+    });
+  }
+
+  function generatePdfReport(scanResult, scoreData) {
+    const now      = new Date();
+    const dateStr  = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr  = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const pageTitle = scanResult.pageTitle || '(untitled)';
+    const errors    = scanResult.issues.filter(function(i) { return i.severity === 'error'; }).length;
+    const warnings  = scanResult.issues.filter(function(i) { return i.severity === 'warning'; }).length;
+    const infos     = scanResult.issues.filter(function(i) { return i.severity === 'info'; }).length;
+
+    const gradeColors = {
+      'A+': '#10b981', 'A': '#22c55e', 'A-': '#84cc16',
+      'B+': '#eab308', 'B': '#f59e0b', 'B-': '#f97316',
+      'C+': '#ef4444', 'C': '#dc2626', 'C-': '#b91c1c',
+      'D':  '#991b1b', 'F': '#7f1d1d'
+    };
+    const gradeColor  = gradeColors[scoreData.grade] || '#6b7280';
+    const levelColors = { 'AA': '#10b981', 'AA*': '#22c55e', 'A': '#f59e0b', 'Failing': '#ef4444' };
+    const levelColor  = levelColors[scoreData.level] || '#6b7280';
+
+    // Build per-type breakdown (mirrors scoring logic)
+    const byType = {};
+    scanResult.issues.forEach(function(issue) {
+      if (!byType[issue.type]) byType[issue.type] = { severity: issue.severity, count: 0 };
+      byType[issue.type].count++;
+    });
+
+    const breakdownRows = [];
+    let totalDeductionPdf = 0;
+    Object.keys(byType).forEach(function(type) {
+      const mapping = wcagMapping[type];
+      if (!mapping) return;
+      const severity = byType[type].severity;
+      const count    = byType[type].count;
+      const weight   = mapping.weight;
+      const level    = mapping.level;
+      let base;
+      if (severity === 'error'   && level === 'A')  base = 4 + weight * 0.4;
+      else if (severity === 'error'   && level === 'AA') base = 2 + weight * 0.3;
+      else if (severity === 'warning' && level === 'A')  base = 1.5 + weight * 0.2;
+      else if (severity === 'warning' && level === 'AA') base = 1 + weight * 0.15;
+      else base = 0.5;
+      const instanceBonus = (weight * 0.22) * Math.sqrt(count);
+      const rowTotal      = base + instanceBonus;
+      totalDeductionPdf  += rowTotal;
+      breakdownRows.push({ type: type, count: count, severity: severity, level: level, criterion: mapping.criterion || '', base: base.toFixed(1), total: rowTotal.toFixed(1) });
+    });
+    breakdownRows.sort(function(a, b) { return parseFloat(b.total) - parseFloat(a.total); });
+
+    const sevDotColor = { error: '#ff4d6a', warning: '#ffb547', info: '#60a5fa' };
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Build grouped issues HTML
+    const groups = {};
+    scanResult.issues.forEach(function(issue) {
+      if (!groups[issue.type]) groups[issue.type] = { severity: issue.severity, items: [] };
+      groups[issue.type].items.push(issue);
+    });
+
+    const sortedTypes = Object.keys(groups).sort(function(a, b) {
+      const order = { error: 0, warning: 1, info: 2 };
+      return (order[groups[a].severity] || 9) - (order[groups[b].severity] || 9);
+    });
+
+    let issuesSectionHtml = '';
+    sortedTypes.forEach(function(type) {
+      const group    = groups[type];
+      const severity = group.severity;
+      const items    = group.items;
+      const mapping  = wcagMapping[type] || {};
+      const fix      = fixSuggestions[type];
+      const dotColor = sevDotColor[severity] || '#6b7280';
+      const badgeMap = {
+        error:   { bg: '#fff1f3', text: '#ff4d6a', border: '#fecdd3' },
+        warning: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
+        info:    { bg: '#eff6ff', text: '#3b82f6', border: '#bfdbfe' }
+      };
+      const badge = badgeMap[severity] || badgeMap.info;
+
+      issuesSectionHtml +=
+        '<div style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;break-inside:avoid;">' +
+          '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;">' +
+            '<div style="width:10px;height:10px;border-radius:50%;background:' + dotColor + ';flex-shrink:0;"></div>' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:13px;font-weight:700;color:#111827;">' + escHtml(type) + '</div>' +
+              (mapping.criterion ? '<div style="font-size:11px;color:#6b7280;margin-top:1px;">WCAG ' + escHtml(mapping.criterion) + ' · Level ' + escHtml(mapping.level || '') + '</div>' : '') +
+            '</div>' +
+            '<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:' + badge.bg + ';color:' + badge.text + ';border:1px solid ' + badge.border + ';white-space:nowrap;">' + severity + ' · ' + items.length + ' instance' + (items.length !== 1 ? 's' : '') + '</span>' +
+          '</div>' +
+          '<div style="padding:12px 16px;">' +
+            '<ul style="margin:0;padding:0 0 0 16px;list-style:disc;">' +
+              items.map(function(i) { return '<li style="font-size:12px;color:#374151;line-height:1.6;margin-bottom:2px;">' + escHtml(i.description) + '</li>'; }).join('') +
+            '</ul>' +
+            (fix ?
+              '<div style="margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;border-left:3px solid ' + dotColor + ';">' +
+                '<div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:4px;">💡 ' + escHtml(fix.title) + '</div>' +
+                '<div style="font-size:11px;color:#4b5563;line-height:1.6;margin-bottom:8px;">' + escHtml(fix.explanation) + '</div>' +
+                '<pre style="margin:0;padding:10px 12px;background:#1e2128;border-radius:5px;font-family:\'DM Mono\',monospace;font-size:10.5px;color:#eceff4;line-height:1.6;overflow-x:auto;white-space:pre-wrap;word-break:break-all;">' + escHtml(fix.code) + '</pre>' +
+              '</div>' : '') +
+          '</div>' +
+        '</div>';
+    });
+
+    // Score breakdown table rows
+    let breakdownTableRows = '';
+    breakdownRows.forEach(function(r) {
+      const dotColor = sevDotColor[r.severity] || '#6b7280';
+      breakdownTableRows +=
+        '<tr style="border-bottom:1px solid #f3f4f6;">' +
+          '<td style="padding:8px 12px;font-size:12px;color:#111827;">' + escHtml(r.type) + ' <span style="font-size:10px;color:#9ca3af;">(' + r.level + ' ' + r.severity + ')</span></td>' +
+          '<td style="padding:8px 12px;font-size:12px;color:#6b7280;text-align:center;">×' + r.count + '</td>' +
+          '<td style="padding:8px 12px;font-size:12px;color:#6b7280;text-align:right;">−' + r.base + '</td>' +
+          '<td style="padding:8px 12px;font-size:12px;font-weight:700;color:' + dotColor + ';text-align:right;">−' + r.total + '</td>' +
+        '</tr>';
+    });
+
+    const metaCards = [
+      ['Images',  scanResult.elementCounts.images],
+      ['Links',   scanResult.elementCounts.links],
+      ['Inputs',  scanResult.elementCounts.inputs],
+      ['Buttons', scanResult.elementCounts.buttons]
+    ].map(function(pair) {
+      return '<div style="padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;text-align:center;">' +
+        '<div style="font-family:\'DM Mono\',monospace;font-size:18px;font-weight:600;color:#111827;">' + pair[1] + '</div>' +
+        '<div style="font-size:11px;color:#9ca3af;margin-top:2px;">' + pair[0] + '</div>' +
+      '</div>';
+    }).join('');
+
+    const html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+      '<meta charset="UTF-8">\n' +
+      '<title>Accessibility Report \u2014 ' + escHtml(pageTitle) + '</title>\n' +
+      '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
+      '<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">\n' +
+      '<style>\n' +
+      '* { margin:0; padding:0; box-sizing:border-box; }\n' +
+      'body { font-family:\'Plus Jakarta Sans\',sans-serif; background:#fff; color:#111827; font-size:13px; line-height:1.5; }\n' +
+      '.page { max-width:780px; margin:0 auto; padding:48px 40px; }\n' +
+      '@media print {\n' +
+      '  body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }\n' +
+      '  .no-print { display:none !important; }\n' +
+      '  .page { padding:24px 28px; }\n' +
+      '  h2 { break-after:avoid; }\n' +
+      '}\n' +
+      'h2 { font-family:\'Plus Jakarta Sans\',sans-serif; font-size:15px; font-weight:700; color:#111827; margin:32px 0 14px; padding-bottom:8px; border-bottom:1.5px solid #e5e7eb; }\n' +
+      'table { width:100%; border-collapse:collapse; }\n' +
+      'th { font-family:\'DM Mono\',monospace; font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:#9ca3af; font-weight:600; padding:8px 12px; text-align:left; background:#f9fafb; border-bottom:1px solid #e5e7eb; }\n' +
+      'th:nth-child(2) { text-align:center; }\n' +
+      'th:nth-child(3), th:nth-child(4) { text-align:right; }\n' +
+      '</style>\n</head>\n<body>\n' +
+      '<div class="no-print" style="position:sticky;top:0;z-index:999;background:#111827;color:#d1fae5;padding:11px 24px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:12.5px;letter-spacing:0.01em;border-bottom:1px solid #00e5a033;">' +
+        '🖨&nbsp; To save as PDF: press <strong style="color:#00e5a0;">Cmd+P</strong> (Mac) or <strong style="color:#00e5a0;">Ctrl+P</strong> (Windows) → set destination to <strong style="color:#fff;">Save as PDF</strong>' +
+      '</div>\n' +
+      '<div class="page">\n\n' +
+
+      // ── Header
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #111827;">' +
+        '<div>' +
+          '<div style="font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6b7280;margin-bottom:6px;">a11y · Accessibility Report</div>' +
+          '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:26px;font-weight:800;color:#111827;line-height:1.1;max-width:480px;word-break:break-word;">' + escHtml(pageTitle) + '</div>' +
+          '<div style="margin-top:8px;font-size:12px;color:#6b7280;font-family:\'DM Mono\',monospace;">' + escHtml(dateStr) + ' at ' + escHtml(timeStr) + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;margin-left:20px;">' +
+          '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:52px;font-weight:800;line-height:1;color:' + gradeColor + ';">' + escHtml(scoreData.grade) + '</div>' +
+          '<div style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:600;color:#374151;margin-top:2px;">' + scoreData.score + '/100</div>' +
+          '<div style="display:inline-block;margin-top:6px;padding:4px 12px;border-radius:20px;background:' + levelColor + '22;color:' + levelColor + ';font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;letter-spacing:0.05em;border:1.5px solid ' + levelColor + ';">' + escHtml(scoreData.level) + '</div>' +
+        '</div>' +
+      '</div>\n\n' +
+
+      // ── Metadata
+      '<h2>Page Metadata</h2>\n' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">' + metaCards + '</div>\n' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">' +
+        '<div style="padding:12px;background:#fff1f3;border:1px solid #fecdd3;border-radius:8px;text-align:center;"><div style="font-family:\'DM Mono\',monospace;font-size:22px;font-weight:700;color:#ff4d6a;">' + errors + '</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Errors</div></div>' +
+        '<div style="padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;text-align:center;"><div style="font-family:\'DM Mono\',monospace;font-size:22px;font-weight:700;color:#d97706;">' + warnings + '</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Warnings</div></div>' +
+        '<div style="padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;text-align:center;"><div style="font-family:\'DM Mono\',monospace;font-size:22px;font-weight:700;color:#3b82f6;">' + infos + '</div><div style="font-size:11px;color:#9ca3af;margin-top:2px;">Info</div></div>' +
+      '</div>\n\n' +
+
+      // ── Score Breakdown
+      '<h2>Score Breakdown</h2>\n' +
+      '<div style="padding:16px 20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:14px;font-size:12px;color:#6b7280;line-height:1.7;">' +
+        'The score starts at <strong style="color:#111827;">100</strong> and deducts points for each violated criterion. ' +
+        'Each type carries a <strong style="color:#111827;">base deduction</strong> (Level A errors: 8–12 pts, AA errors: 4–5 pts, warnings: 2–4 pts) ' +
+        'plus a <strong style="color:#111827;">volume penalty</strong> using diminishing returns (√count × weight × 0.22). ' +
+        'Pages with Level A errors have a score ceiling: 1 → max 91, 2–3 → max 84, 4–9 → max 79, 10+ → max 69.' +
+      '</div>\n' +
+      (breakdownRows.length > 0
+        ? '<div style="border:1px solid #e5e7eb;border-radius:8px 8px 0 0;overflow:hidden;">' +
+            '<table><thead><tr><th>Issue type</th><th>Count</th><th>Base</th><th>Total deduction</th></tr></thead>' +
+            '<tbody>' + breakdownTableRows + '</tbody></table></div>' +
+            '<div style="display:flex;justify-content:space-between;padding:10px 12px;background:#f3f4f6;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;color:#111827;">' +
+              '<span>Total deduction</span><span>−' + Math.min(totalDeductionPdf, 100).toFixed(1) + ' pts \u2192 ' + scoreData.score + '/100</span>' +
+            '</div>'
+        : '<div style="padding:12px;color:#9ca3af;font-size:12px;">No deductions.</div>') + '\n\n' +
+
+      // ── Issues
+      '<h2 style="margin-top:36px;">Issues (' + scanResult.issues.length + ')</h2>\n' +
+      (issuesSectionHtml || '<div style="padding:16px;color:#9ca3af;font-size:12px;text-align:center;">No issues found.</div>') + '\n\n' +
+
+      // ── Footer
+      '<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">' +
+        '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:#9ca3af;letter-spacing:0.05em;">Generated by a11y Accessibility Scanner</div>' +
+        '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:#9ca3af;">25 automated WCAG checks · Manual testing required for full audit</div>' +
+      '</div>\n\n' +
+
+      '</div>\n' +
+      '</body>\n</html>';
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+  }
+
 });
 
 // ================================================================
