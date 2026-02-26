@@ -236,8 +236,8 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsDiv.classList.add('hidden');
     emptyDiv.classList.add('hidden');
     scanButton.disabled = true;
-    statusPill.textContent = '';
-    statusPill.className = 'status-pill hidden';
+    statusPill.textContent = 'scanning';
+    statusPill.className = 'status-pill scanning';
 
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
@@ -280,8 +280,8 @@ document.addEventListener('DOMContentLoaded', function () {
       allIssues = scanResult.issues;
 
       loadingDiv.classList.add('hidden');
-      statusPill.textContent = '';
-      statusPill.className = 'status-pill hidden';
+      statusPill.textContent = scanResult.totalIssues + ' issue' + (scanResult.totalIssues !== 1 ? 's' : '');
+      statusPill.className = 'status-pill done';
 
       if (scanResult.totalIssues === 0) {
         emptyDiv.classList.remove('hidden');
@@ -298,8 +298,8 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (error) {
       console.error('Scan error:', error);
       loadingDiv.classList.add('hidden');
-      statusPill.textContent = '';
-      statusPill.className = 'status-pill hidden';
+      statusPill.textContent = 'error';
+      statusPill.className = 'status-pill';
       const msg = error && error.message
         ? error.message.includes('Cannot access') || error.message.includes('permissions')
           ? 'This page cannot be scanned due to browser restrictions. Try a regular website.'
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div>' +
       '<div class="summary-divider"></div>' +
       '<div class="summary-section">' +
-        '<span class="summary-label">' + (errors + warnings) + ' issue' + (errors + warnings !== 1 ? 's' : '') + '</span>' +
+        '<span class="summary-label">Issues</span>' +
         '<span class="summary-stats">' +
           '<span class="stat-error">' + errors + '</span>' +
           (warnings > 0 ? '<span class="stat-sep">·</span><span class="stat-warn">' + warnings + '</span>' : '') +
@@ -541,6 +541,31 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── Render issue cards (grouped by type)
+  // ── Contrast swatch helper ──────────────────────────────────────
+  function buildContrastSwatch(cd) {
+    if (!cd) return '';
+    const barWidth = Math.min(100, Math.round((cd.ratio / 21) * 100));
+    const barColor = cd.ratio >= cd.threshold ? 'var(--accent)' : (cd.threshold - cd.ratio > 1.5 ? 'var(--error)' : 'var(--warn)');
+    return '<div class="contrast-swatch">' +
+      '<div class="contrast-swatches">' +
+        '<span class="contrast-chip" style="background:' + esc(cd.bgHex) + ';border:1px solid rgba(128,128,128,0.2);"></span>' +
+        '<span class="contrast-chip" style="background:' + esc(cd.fgHex) + ';border:1px solid rgba(128,128,128,0.2);"></span>' +
+        '<span class="contrast-preview" style="background:' + esc(cd.bgHex) + ';color:' + esc(cd.fgHex) + ';">Aa</span>' +
+      '</div>' +
+      '<div class="contrast-ratio-row">' +
+        '<span class="contrast-ratio-num">' + cd.ratio.toFixed(2) + ':1</span>' +
+        '<span class="contrast-ratio-need">need ' + cd.threshold.toFixed(1) + ':1 · ' + (cd.isLarge ? 'large text' : 'normal text') + '</span>' +
+      '</div>' +
+      '<div class="contrast-bar-track">' +
+        '<div class="contrast-bar-fill" style="width:' + barWidth + '%;background:' + barColor + ';"></div>' +
+        '<div class="contrast-bar-marker" style="left:' + Math.min(100, Math.round((cd.threshold / 21) * 100)) + '%;"></div>' +
+      '</div>' +
+      '<div class="contrast-hex-row">' +
+        '<span style="color:var(--muted);font-size:10px;font-family:var(--font-mono);">fg&nbsp;' + esc(cd.fgHex) + '&nbsp;&nbsp;bg&nbsp;' + esc(cd.bgHex) + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+
   function renderIssues(issues, filter) {
     const filtered = filter === 'all' ? issues : issues.filter(i => i.severity === filter);
 
@@ -576,6 +601,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="issue-body">' +
             '<div class="issue-type">' + esc(type) + '</div>' +
             '<div class="issue-description">' + esc(issue.description) + '</div>' +
+            (issue.contrastData ? buildContrastSwatch(issue.contrastData) : '') +
             (hasFix ? '<button class="fix-toggle" data-fix-id="' + fixId + '">💡 How to fix</button>' : '') +
             (hasFix ? '<div class="fix-panel hidden" id="' + fixId + '">' +
               '<div class="fix-title">' + esc(fixSuggestions[type].title) + '</div>' +
@@ -596,6 +622,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="severity-bar"></div>' +
             '<div class="issue-body">' +
               '<div class="issue-description">' + esc(issue.description) + '</div>' +
+              (issue.contrastData ? buildContrastSwatch(issue.contrastData) : '') +
               (hasFix && idx === 0 ? '<button class="fix-toggle" data-fix-id="' + fixId + '">💡 How to fix</button>' : '') +
               (hasFix && idx === 0 ? '<div class="fix-panel hidden" id="' + fixId + '">' +
                 '<div class="fix-title">' + esc(fixSuggestions[type].title) + '</div>' +
@@ -1096,80 +1123,158 @@ function scanPageForAccessibility() {
     }
   });
 
-  // Check 12: Color contrast (approximation using computed styles)
-  // We sample visible text elements and check contrast ratio
+  // Check 12: Color contrast — full WCAG 1.4.3 / 1.4.11 implementation
+  // Samples up to 200 elements, handles alpha compositing, reports actual ratio,
+  // distinguishes large vs normal text, deduplicates by color-pair per element type.
+
   function getLuminance(r, g, b) {
-    const [rs, gs, bs] = [r, g, b].map(function(c) {
+    return [r, g, b].reduce(function(sum, c, i) {
       c = c / 255;
-      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+      c = c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      return sum + c * [0.2126, 0.7152, 0.0722][i];
+    }, 0);
   }
 
   function parseColor(color) {
-    if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return null;
-    const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-    if (m) return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
-    return null;
+    if (!color || color === 'transparent') return null;
+    const m = color.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/);
+    if (!m) return null;
+    const alpha = m[4] !== undefined ? parseFloat(m[4]) : 1;
+    if (alpha === 0) return null;
+    return { r: parseInt(m[1]), g: parseInt(m[2]), b: parseInt(m[3]), a: alpha };
   }
 
+  // Alpha-composite src over dst (all values 0–255 / 0–1)
+  function alphaComposite(src, dst) {
+    const a = src.a + dst.a * (1 - src.a);
+    if (a === 0) return { r: 255, g: 255, b: 255, a: 0 };
+    return {
+      r: Math.round((src.r * src.a + dst.r * dst.a * (1 - src.a)) / a),
+      g: Math.round((src.g * src.a + dst.g * dst.a * (1 - src.a)) / a),
+      b: Math.round((src.b * src.a + dst.b * dst.a * (1 - src.a)) / a),
+      a: a
+    };
+  }
+
+  // Walk up the DOM compositing background layers until fully opaque
   function getEffectiveBackground(el) {
-    let node = el;
+    const layers = [];
+    let node = el.parentElement;
     while (node && node !== document.documentElement) {
       const bg = window.getComputedStyle(node).backgroundColor;
       const parsed = parseColor(bg);
-      if (parsed) return parsed;
+      if (parsed) layers.push(parsed);
+      if (parsed && parsed.a === 1) break; // fully opaque — stop
       node = node.parentElement;
     }
-    return [255, 255, 255]; // fallback white
+    // Composite from bottom up (deepest ancestor first)
+    let composite = { r: 255, g: 255, b: 255, a: 1 }; // page default white
+    for (let i = layers.length - 1; i >= 0; i--) {
+      composite = alphaComposite(layers[i], composite);
+    }
+    return composite;
   }
 
-  function contrastRatio(l1, l2) {
+  // Resolve foreground color accounting for its opacity
+  function getEffectiveForeground(el) {
+    const style = window.getComputedStyle(el);
+    const fg = parseColor(style.color);
+    if (!fg) return null;
+    if (fg.a === 1) return fg;
+    // Blend semi-transparent text over its background
+    const bg = getEffectiveBackground(el);
+    return alphaComposite(fg, bg);
+  }
+
+  function contrastRatio(c1, c2) {
+    const l1 = getLuminance(c1.r, c1.g, c1.b);
+    const l2 = getLuminance(c2.r, c2.g, c2.b);
     const lighter = Math.max(l1, l2);
     const darker  = Math.min(l1, l2);
     return (lighter + 0.05) / (darker + 0.05);
   }
 
-  // Sample text-bearing elements (limit to 60 to keep scan fast)
-  const textSelectors = 'p, li, td, th, h1, h2, h3, h4, h5, h6, label, span, a, button';
+  function toHex(c) {
+    return '#' + [c.r, c.g, c.b].map(function(v) {
+      return v.toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  // Broad selector — leaf text nodes across all meaningful elements
+  const textSelectors = [
+    'p', 'li', 'td', 'th', 'dt', 'dd', 'caption',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'label', 'legend', 'figcaption',
+    'span', 'a', 'button', 'small', 'strong', 'em', 'b', 'i',
+    'div', 'section > *', 'article > *',
+    '[class*="text"]', '[class*="label"]', '[class*="title"]',
+    '[class*="heading"]', '[class*="caption"]', '[class*="desc"]'
+  ].join(', ');
+
   const textEls = Array.from(document.querySelectorAll(textSelectors))
     .filter(function(el) {
-      return isVisible(el) && el.textContent.trim().length > 2 && el.children.length === 0;
+      if (!isVisible(el)) return false;
+      const text = el.textContent.trim();
+      if (text.length < 3) return false;
+      // Prefer leaf-ish nodes — skip if all content is in children
+      const directText = Array.from(el.childNodes)
+        .some(function(n) { return n.nodeType === 3 && n.textContent.trim().length > 0; });
+      return directText || el.children.length === 0;
     })
-    .slice(0, 60);
+    .slice(0, 200);
 
-  const contrastIssues = new Set();
+  // Dedup by (fg hex, bg hex, isLarge) so same failing color pair isn't
+  // reported 50 times, but DIFFERENT color pairs are each reported once.
+  const seenContrastPairs = new Set();
 
   textEls.forEach(function(el) {
-    const style    = window.getComputedStyle(el);
-    const fgParsed = parseColor(style.color);
-    if (!fgParsed) return;
+    const style      = window.getComputedStyle(el);
+    const fontSize   = parseFloat(style.fontSize);
+    const fontWeight = parseInt(style.fontWeight, 10) || 400;
+    const isLarge    = fontSize >= 24 || (fontSize >= 18.67 && fontWeight >= 700);
+    const threshold  = isLarge ? 3.0 : 4.5;
+    const aaThreshold = isLarge ? 3.0 : 4.5;
+    const aaaThreshold = isLarge ? 4.5 : 7.0;
 
-    const bgParsed = getEffectiveBackground(el);
-    const fgLum    = getLuminance(...fgParsed);
-    const bgLum    = getLuminance(...bgParsed);
-    const ratio    = contrastRatio(fgLum, bgLum);
+    const fg = getEffectiveForeground(el);
+    if (!fg) return;
+    const bg = getEffectiveBackground(el);
 
-    // Determine if large text (18pt = 24px, or 14pt bold = ~18.67px bold)
-    const fontSize  = parseFloat(style.fontSize);
-    const fontWeight = parseInt(style.fontWeight, 10);
-    const isLarge   = fontSize >= 24 || (fontSize >= 18.67 && fontWeight >= 700);
-    const threshold = isLarge ? 3.0 : 4.5;
+    const ratio = contrastRatio(fg, bg);
+    if (ratio >= threshold || ratio <= 1) return; // passes or identical colors
 
-    if (ratio < threshold && ratio > 1) {
-      const sig = fgParsed.join(',') + '|' + bgParsed.join(',');
-      if (!contrastIssues.has(sig)) {
-        contrastIssues.add(sig);
-        const tag = tagElement(el, elementIndex++);
-        const textSnippet = el.textContent.trim().substring(0, 40);
-        issues.push({
-          type: 'Low Color Contrast',
-          severity: 'error',
-          description: '"' + textSnippet + '" has a contrast ratio of ' + ratio.toFixed(2) + ':1 (needs ' + threshold + ':1). Text: rgb(' + fgParsed.join(',') + '), Background: rgb(' + bgParsed.join(',') + ').',
-          tag: tag
-        });
-      }
-    }
+    const fgHex = toHex(fg);
+    const bgHex = toHex(bg);
+    const pairKey = fgHex + '|' + bgHex + '|' + (isLarge ? 'L' : 'N');
+    if (seenContrastPairs.has(pairKey)) return;
+    seenContrastPairs.add(pairKey);
+
+    const tag         = tagElement(el, elementIndex++);
+    const textSnippet = el.textContent.trim().substring(0, 45);
+    const ratioStr    = ratio.toFixed(2);
+    const sizeLabel   = isLarge ? 'large text' : 'normal text';
+    const needed      = threshold.toFixed(1);
+
+    // How far off is it?
+    const severity = (threshold - ratio) > 1.5 ? 'error' : 'warning';
+
+    issues.push({
+      type: 'Low Color Contrast',
+      severity: severity,
+      description:
+        '"' + textSnippet + '" — ' + ratioStr + ':1 (need ' + needed + ':1 for ' + sizeLabel + '). ' +
+        'Text ' + fgHex + ' on ' + bgHex + '.',
+      contrastData: {
+        ratio: parseFloat(ratioStr),
+        threshold: parseFloat(needed),
+        fgHex: fgHex,
+        bgHex: bgHex,
+        isLarge: isLarge,
+        aaPass: ratio >= aaThreshold,
+        aaaPass: ratio >= aaaThreshold
+      },
+      tag: tag
+    });
   });
 
   // Check 13: Suspicious empty alt text (alt="" on linked or complex images)

@@ -23,9 +23,9 @@
   --info-dim: rgba(96, 165, 250, 0.12);
   --shadow:   rgba(0, 0, 0, 0.3);
 
-  --font-display: 'Syne', sans-serif;
-  --font-mono:    'DM Mono', monospace;
-  --font-body:    'DM Sans', sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'DM Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-body:    'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 /* Light theme */
@@ -1407,6 +1407,92 @@ body {
 .wl-badge.aastar { background: rgba(34,197,94,0.15);  color: #22c55e; }
 .wl-badge.a      { background: rgba(245,158,11,0.15); color: #f59e0b; }
 .wl-badge.fail   { background: rgba(239,68,68,0.15);  color: #ef4444; }
+
+/* ── Contrast Swatch ── */
+.contrast-swatch {
+  margin: 8px 0 6px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.contrast-swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contrast-chip {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.contrast-preview {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.contrast-ratio-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.contrast-ratio-num {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.contrast-ratio-need {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.contrast-bar-track {
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  position: relative;
+  overflow: visible;
+}
+
+.contrast-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.contrast-bar-marker {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 11px;
+  background: var(--text);
+  border-radius: 1px;
+  transform: translateX(-50%);
+  opacity: 0.5;
+}
+
+.contrast-hex-row {
+  margin-top: -2px;
+}
 
 /* ── Export Bar ── */
 .export-bar {
