@@ -42,7 +42,7 @@
               </svg>
             </span>
           </button>
-          <div class="status-pill hidden" id="statusPill"></div>
+
         </div>
       </div>
       <h1 class="headline">Accessibility<br>Scanner</h1>
@@ -104,16 +104,16 @@
     </div>
 
     <div class="export-bar hidden" id="exportBar">
-      <button class="export-btn" id="exportPdfBtn">Export Report</button>
+      <button class="export-btn" id="exportReportBtn">Export Report</button>
     </div>
 
   </div>
 
   <!-- Score Modal -->
   <div class="modal hidden" id="scoreModal">
-    <div class="modal-content">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="scoreModalTitle">
       <div class="modal-header">
-        <h2>Score Breakdown</h2>
+        <h2 id="scoreModalTitle">Score Breakdown</h2>
         <button class="modal-close" id="closeScoreModal" aria-label="Close">✕</button>
       </div>
 

@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const loadingDiv      = document.getElementById('loading');
   const emptyDiv        = document.getElementById('empty');
   const summaryStrip    = document.getElementById('summaryStrip');
-  const statusPill      = document.getElementById('statusPill');
   const themeToggle     = document.getElementById('themeToggle');
 
   let allIssues       = [];
@@ -220,8 +219,6 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsDiv.classList.add('hidden');
     emptyDiv.classList.add('hidden');
     scanButton.disabled = true;
-    statusPill.textContent = 'scanning';
-    statusPill.className = 'status-pill scanning';
 
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
@@ -233,8 +230,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const url = tab.url || '';
       if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('edge://') || url.startsWith('about:')) {
         loadingDiv.classList.add('hidden');
-        statusPill.textContent = 'error';
-        statusPill.className = 'status-pill';
         issuesList.innerHTML = '<div class="issue-card error"><div class="severity-bar"></div><div class="issue-body"><div class="issue-type">Cannot Scan This Page</div><div class="issue-description">Browser and extension pages cannot be scanned. Navigate to a regular website and try again.</div></div></div>';
         resultsDiv.classList.remove('hidden');
         return;
@@ -264,8 +259,6 @@ document.addEventListener('DOMContentLoaded', function () {
       allIssues = scanResult.issues;
 
       loadingDiv.classList.add('hidden');
-      statusPill.textContent = scanResult.totalIssues + ' issue' + (scanResult.totalIssues !== 1 ? 's' : '');
-      statusPill.className = 'status-pill done';
 
       if (scanResult.totalIssues === 0) {
         emptyDiv.classList.remove('hidden');
@@ -282,8 +275,6 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (error) {
       console.error('Scan error:', error);
       loadingDiv.classList.add('hidden');
-      statusPill.textContent = 'error';
-      statusPill.className = 'status-pill';
       const msg = error && error.message
         ? error.message.includes('Cannot access') || error.message.includes('permissions')
           ? 'This page cannot be scanned due to browser restrictions. Try a regular website.'
@@ -506,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div>' +
       '<div class="summary-divider"></div>' +
       '<div class="summary-section">' +
-        '<span class="summary-label">Issues</span>' +
+        '<span class="summary-label">' + (errors + warnings) + ' Issues</span>' +
         '<span class="summary-stats">' +
           '<span class="stat-error">' + errors + '</span>' +
           (warnings > 0 ? '<span class="stat-sep">·</span><span class="stat-warn">' + warnings + '</span>' : '') +
