@@ -172,22 +172,6 @@ document.addEventListener('DOMContentLoaded', function () {
     localStorage.setItem('a11y-theme', next);
   });
 
-  // ── Criteria modal ──────────────────────────────────────────────
-  const criteriaModal = document.getElementById('criteriaModal');
-  const closeModal    = document.getElementById('closeModal');
-
-  if (closeModal && criteriaModal) {
-    closeModal.addEventListener('click', function() {
-      criteriaModal.classList.add('hidden');
-    });
-
-    criteriaModal.addEventListener('click', function(e) {
-      if (e.target === criteriaModal) {
-        criteriaModal.classList.add('hidden');
-      }
-    });
-  }
-
   // ── Score modal ─────────────────────────────────────────────────
   const scoreModal      = document.getElementById('scoreModal');
   const closeScoreModal = document.getElementById('closeScoreModal');
