@@ -236,8 +236,8 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsDiv.classList.add('hidden');
     emptyDiv.classList.add('hidden');
     scanButton.disabled = true;
-    statusPill.textContent = 'scanning';
-    statusPill.className = 'status-pill scanning';
+    statusPill.textContent = '';
+    statusPill.className = 'status-pill hidden';
 
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
@@ -280,8 +280,8 @@ document.addEventListener('DOMContentLoaded', function () {
       allIssues = scanResult.issues;
 
       loadingDiv.classList.add('hidden');
-      statusPill.textContent = scanResult.totalIssues + ' issue' + (scanResult.totalIssues !== 1 ? 's' : '');
-      statusPill.className = 'status-pill done';
+      statusPill.textContent = '';
+      statusPill.className = 'status-pill hidden';
 
       if (scanResult.totalIssues === 0) {
         emptyDiv.classList.remove('hidden');
@@ -298,8 +298,8 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (error) {
       console.error('Scan error:', error);
       loadingDiv.classList.add('hidden');
-      statusPill.textContent = 'error';
-      statusPill.className = 'status-pill';
+      statusPill.textContent = '';
+      statusPill.className = 'status-pill hidden';
       const msg = error && error.message
         ? error.message.includes('Cannot access') || error.message.includes('permissions')
           ? 'This page cannot be scanned due to browser restrictions. Try a regular website.'
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div>' +
       '<div class="summary-divider"></div>' +
       '<div class="summary-section">' +
-        '<span class="summary-label">Issues</span>' +
+        '<span class="summary-label">' + (errors + warnings) + ' issue' + (errors + warnings !== 1 ? 's' : '') + '</span>' +
         '<span class="summary-stats">' +
           '<span class="stat-error">' + errors + '</span>' +
           (warnings > 0 ? '<span class="stat-sep">·</span><span class="stat-warn">' + warnings + '</span>' : '') +

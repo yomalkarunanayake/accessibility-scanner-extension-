@@ -13,8 +13,8 @@
   --text:     #eceff4;
   --text-2:   #d8dee9;
   --muted:    #6b7280;
-  --accent:   #00e5a0;
-  --accent-dim: rgba(0, 229, 160, 0.1);
+  --accent:   #48D68F;
+  --accent-dim: rgba(72, 214, 143, 0.1);
   --error:    #ff4d6a;
   --error-dim: rgba(255, 77, 106, 0.12);
   --warn:     #ffb547;
@@ -37,8 +37,8 @@
   --text:     #1a1d21;
   --text-2:   #495057;
   --muted:    #6c757d;
-  --accent:   #00c189;
-  --accent-dim: rgba(0, 193, 137, 0.1);
+  --accent:   #3ac47d;
+  --accent-dim: rgba(58, 196, 125, 0.1);
   --error:    #dc3545;
   --error-dim: rgba(220, 53, 69, 0.1);
   --warn:     #f59e0b;
@@ -190,8 +190,8 @@ body {
 
 .theme-toggle[data-theme="light"] .theme-icon {
   left: calc(100% - 19px);
-  background: var(--accent);
-  color: var(--text);
+  background: #EBC05F;
+  color: #ffffff;
 }
 
 /* Show sun in light mode, moon in dark mode */
@@ -305,27 +305,35 @@ body {
 }
 
 .focus-info-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 38px;
+  align-self: center;
   border-radius: 8px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
-  color: var(--muted);
+  background: rgba(59, 130, 246, 0.12);
+  border: 1.5px solid #3b82f6;
+  color: #3b82f6;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .focus-info-btn:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  background: rgba(59,130,246,0.08);
+  background: rgba(59, 130, 246, 0.22);
+  border-color: #2563eb;
+  color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+}
+
+.focus-info-btn:active {
+  transform: translateY(0);
 }
 
 .focus-tooltip {
@@ -406,9 +414,9 @@ body {
 }
 
 .scan-btn:hover {
-  background: #00ffb3;
+  background: #6ee8a8;
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0,229,160,0.35);
+  box-shadow: 0 8px 24px rgba(72, 214, 143, 0.35);
 }
 
 .scan-btn:active {
@@ -495,6 +503,11 @@ body {
   font-weight: 500;
 }
 
+/* Dark mode: use true white for better readability */
+:root:not([data-theme="light"]) .summary-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .summary-stats {
   font-family: var(--font-body);
   font-size: 14px;
@@ -549,6 +562,10 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   letter-spacing: 0.03em;
+}
+
+:root:not([data-theme="light"]) .filter-btn {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .filter-btn:hover {
@@ -672,6 +689,14 @@ body {
   word-break: break-word;
 }
 
+:root:not([data-theme="light"]) .issue-description {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:root[data-theme="light"] .issue-description {
+  color: #1a1d21;
+}
+
 .click-hint {
   margin-top: 6px;
   font-family: var(--font-mono);
@@ -680,6 +705,16 @@ body {
   letter-spacing: 0.03em;
   opacity: 0.7;
   flex-shrink: 0;
+}
+
+:root:not([data-theme="light"]) .click-hint {
+  color: #60c8ff;
+  opacity: 1;
+}
+
+:root[data-theme="light"] .click-hint {
+  color: #1d4ed8;
+  opacity: 0.9;
 }
 
 .issue-card.clickable:hover .click-hint {
@@ -959,6 +994,10 @@ body {
   color: var(--muted);
   font-weight: 500;
   margin-left: 4px;
+}
+
+:root:not([data-theme="light"]) .score-number {
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .wcag-level {
@@ -1383,10 +1422,10 @@ body {
   align-items: center;
   justify-content: center;
   padding: 13px 18px;
-  background: #f59e0b;
-  border: 1.5px solid #f59e0b;
+  background: #EBC05F;
+  border: 1.5px solid #EBC05F;
   border-radius: 8px;
-  color: #1c1000;
+  color: #1a1200;
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
@@ -1411,10 +1450,10 @@ body {
 }
 
 .export-btn:hover {
-  background: #d97706;
-  border-color: #d97706;
+  background: #fde047;
+  border-color: #fde047;
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(245,158,11,0.35);
+  box-shadow: 0 8px 24px rgba(235, 192, 95, 0.45);
 }
 
 .export-btn:active {
