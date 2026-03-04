@@ -711,7 +711,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // ── Export PDF ──────────────────────────────────────────────────
-  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const exportPdfBtn = document.getElementById('exportReportBtn');
   if (exportPdfBtn) {
     exportPdfBtn.addEventListener('click', function() {
       if (!lastScanResult || !lastScoreData) return;
