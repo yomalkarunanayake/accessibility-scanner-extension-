@@ -984,14 +984,14 @@ function scanPageForAccessibility() {
   }
 
   function isVisible(element) {
-    const rect  = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
-    if (rect.width === 0 || rect.height === 0) return false;
     if (style.display === 'none') return false;
     if (style.visibility === 'hidden') return false;
     if (style.opacity === '0') return false;
-    if (rect.bottom < -200 || rect.right < -200) return false;
-    if (rect.top > document.documentElement.scrollHeight + 200) return false;
+    // Use offsetWidth/offsetHeight instead of getBoundingClientRect so the check
+    // is not affected by scroll position (getBoundingClientRect returns viewport-
+    // relative coords, so elements scrolled out of view get negative values).
+    if (element.offsetWidth === 0 && element.offsetHeight === 0) return false;
     return true;
   }
 
