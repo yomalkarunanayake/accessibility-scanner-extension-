@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'Missing Main Landmark': { criterion: '1.3.6 Identify Purpose', level: 'AA', weight: 6 },
     'Missing Navigation Landmark': { criterion: '1.3.6 Identify Purpose', level: 'AA', weight: 5 },
     'Multiple Main Landmarks':     { criterion: '1.3.6 Identify Purpose', level: 'AA', weight: 5 },
+    'Low Color Contrast':          { criterion: '1.4.3 Contrast (Minimum)', level: 'AA', weight: 8 },
     'Positive Tabindex':           { criterion: '2.4.3 Focus Order', level: 'A', weight: 7 },
     'Keyboard Inaccessible Element': { criterion: '2.1.1 Keyboard', level: 'A', weight: 9 },
     'Low Color Contrast':          { criterion: '1.4.3 Contrast (Minimum)', level: 'AA', weight: 8 },
@@ -1145,7 +1146,7 @@ function scanPageForAccessibility() {
   // Walk up the DOM compositing background layers until fully opaque
   function getEffectiveBackground(el) {
     const layers = [];
-    let node = el.parentElement;
+    let node = el;
     while (node && node !== document.documentElement) {
       const bg = window.getComputedStyle(node).backgroundColor;
       const parsed = parseColor(bg);
