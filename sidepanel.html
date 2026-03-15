@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Accessibility Scanner</title>
+  <title>Omi - A11Y</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&family=Pixelify+Sans:wght@400;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
@@ -15,12 +15,7 @@
     <header class="header">
       <div class="header-top">
         <div class="logo">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-            <circle cx="11" cy="11" r="10" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M11 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="11" cy="11" r="2" fill="currentColor"/>
-          </svg>
-          <span>a11y</span>
+          <span style="font-family:'Pixelify Sans',sans-serif;color:var(--text);font-size:15px;font-weight:700;letter-spacing:0.02em;">Omi - A11Y</span>
         </div>
         <div class="header-actions">
           <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
@@ -69,6 +64,40 @@
       </div>
     </div>
 
+    <div id="initial-state" class="initial-state">
+      <div id="omi-animation"></div>
+      <div class="onboarding-steps">
+        <div class="onboarding-step">
+          <span class="onboarding-num">1</span>
+          <div class="onboarding-text">
+            <strong>Scan any page</strong>
+            <p>Click <em>Scan This Page</em> to run 25 automated WCAG checks on the active tab.</p>
+          </div>
+        </div>
+        <div class="onboarding-step">
+          <span class="onboarding-num">2</span>
+          <div class="onboarding-text">
+            <strong>Inspect issues</strong>
+            <p>Click any issue to highlight the element on the page. Filter by Errors, Warnings, or Info.</p>
+          </div>
+        </div>
+        <div class="onboarding-step">
+          <span class="onboarding-num">3</span>
+          <div class="onboarding-text">
+            <strong>Check focus order</strong>
+            <p>Use <em>Show Focus Order</em> to visualise the keyboard tab sequence across the page.</p>
+          </div>
+        </div>
+        <div class="onboarding-step">
+          <span class="onboarding-num">4</span>
+          <div class="onboarding-text">
+            <strong>Export a report</strong>
+            <p>After scanning, export a full PDF accessibility report with scores and fix suggestions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="loading" class="loading hidden">
       <div class="loader-track">
         <div class="loader-fill"></div>
@@ -98,8 +127,8 @@
     </div>
 
     <div id="empty" class="empty hidden">
-      <div class="empty-icon">✓</div>
-      <p class="empty-title">All clear</p>
+      <img src="lib/all-clear.svg" class="empty-illustration" alt="" aria-hidden="true">
+      <p class="empty-title">All clear!</p>
       <p class="empty-sub">No accessibility issues detected on this page.</p>
     </div>
 
@@ -218,6 +247,7 @@
     </div>
   </div>
 
+  <script src="lib/lottie.min.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

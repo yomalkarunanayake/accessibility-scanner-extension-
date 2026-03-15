@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/yomalkarunanayake/Developer/accessibility-scanner-extension /src/**)",
+      "Read(//Users/yomalkarunanayake/Developer/accessibility-scanner-extension /**)"
+    ],
+    "additionalDirectories": [
+      "/Users/yomalkarunanayake/Developer/accessibility-scanner-extension ",
+      "/Users/yomalkarunanayake/Developer/accessibility-scanner-extension /src",
+      "/Users/yomalkarunanayake/Downloads",
+      "/Users/yomalkarunanayake/Developer/accessibility-scanner-extension /lib"
+    ]
+  }
+}

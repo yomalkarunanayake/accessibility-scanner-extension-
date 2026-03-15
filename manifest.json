@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Accessibility Scanner",
+  "name": "Omi - A11Y",
   "version": "1.0",
   "description": "Find and fix accessibility issues on any page",
 
@@ -19,7 +19,7 @@
   },
 
   "action": {
-    "default_title": "Open Accessibility Scanner"
+    "default_title": "Open Omi - A11Y"
   },
 
   "icons": {
