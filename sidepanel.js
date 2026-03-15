@@ -583,7 +583,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const fixId     = 'fix-' + type.replace(/\s+/g, '-').toLowerCase() + '-0';
         const hasFix    = fixSuggestions[type];
         
-        html += '<div class="issue-card ' + severity + ' ' + clickable + '" ' + dataTag + '>' +
+        html += '<div class="issue-card ' + severity + ' ' + clickable + '" ' + dataTag + ' data-type="' + esc(type) + '">' +
           '<div class="severity-bar"></div>' +
           '<div class="issue-body">' +
             '<div class="issue-type">' + esc(type) + '</div>' +
@@ -605,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const dataTag   = issue.tag ? 'data-tag="' + issue.tag + '"' : '';
           const fixId     = 'fix-' + type.replace(/\s+/g, '-').toLowerCase() + '-' + idx;
           
-          childCards += '<div class="issue-card ' + severity + ' ' + clickable + ' child-card" ' + dataTag + '>' +
+          childCards += '<div class="issue-card ' + severity + ' ' + clickable + ' child-card" ' + dataTag + ' data-type="' + esc(type) + '">' +
             '<div class="severity-bar"></div>' +
             '<div class="issue-body">' +
               '<div class="issue-description">' + esc(issue.description) + '</div>' +
@@ -665,18 +665,36 @@ document.addEventListener('DOMContentLoaded', function () {
     attachClickListeners();
   }
 
+  // ── Omi SVG picker ─────────────────────────────────────────────
+  function getOmiSvgUrl(type, severity) {
+    const mapping = wcagMapping[type];
+    const level   = mapping ? mapping.level : null;
+    let path;
+    if      (severity === 'error'   && level === 'A')  path = 'lib/omi-Level A Errors.svg';
+    else if (severity === 'error'   && level === 'AA') path = 'lib/Level AA Errors.svg';
+    else if (severity === 'warning' && level === 'A')  path = 'lib/Level A Warnings.svg';
+    else if (severity === 'info'    && level === 'A')  path = 'lib/Level A Info.svg';
+    else if (level === 'AA')                           path = 'lib/Level AA Warnings + Info.svg';
+    else                                               path = 'lib/omi-default.svg';
+    return chrome.runtime.getURL(path);
+  }
+
   // ── Click-to-highlight
   function attachClickListeners() {
     document.querySelectorAll('.issue-card.clickable').forEach(function(item) {
       item.addEventListener('click', async function () {
         const tag = this.getAttribute('data-tag');
         if (!tag) return;
+        const type     = this.getAttribute('data-type') || '';
+        const severity = this.classList.contains('error') ? 'error'
+                       : this.classList.contains('warning') ? 'warning' : 'info';
+        const omiUrl   = getOmiSvgUrl(type, severity);
         try {
           const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: highlightElement,
-            args: [tag]
+            args: [tag, omiUrl]
           });
         } catch (error) {
           console.error('Highlight error:', error);
@@ -1435,7 +1453,7 @@ function scanPageForAccessibility() {
   };
 }
 
-function highlightElement(tag) {
+function highlightElement(tag, omiSvgUrl) {
   // Clear previous highlights
   document.querySelectorAll('[data-a11y-highlight]').forEach(function(el) {
     el.style.outline = el.getAttribute('data-a11y-original-outline') || '';
@@ -1494,14 +1512,25 @@ function highlightElement(tag) {
   // Create label but don't position it yet
   const label = document.createElement('div');
   label.id = 'a11y-label';
-  label.textContent = '⚠ Accessibility Issue';
-  label.style.cssText = 'position:fixed;background:#ff4d6a;color:white;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:700;z-index:999999;pointer-events:none;font-family:monospace;letter-spacing:0.04em;box-shadow:0 4px 12px rgba(255,77,106,0.4);top:-999px;left:-999px;';
+  label.style.cssText = 'position:fixed;display:flex;align-items:flex-end;gap:6px;z-index:999999;pointer-events:none;top:-999px;left:-999px;';
+
+  if (omiSvgUrl) {
+    const omiImg = document.createElement('img');
+    omiImg.src = omiSvgUrl;
+    omiImg.style.cssText = 'height:48px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3));';
+    label.appendChild(omiImg);
+  }
+
+  const badge = document.createElement('div');
+  badge.textContent = '⚠ Accessibility Issue';
+  badge.style.cssText = 'background:#ff4d6a;color:white;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:700;font-family:monospace;letter-spacing:0.04em;box-shadow:0 4px 12px rgba(255,77,106,0.4);white-space:nowrap;';
+  label.appendChild(badge);
   document.body.appendChild(label);
 
   // Update label position — called repeatedly so it tracks the element after scroll
   function updateLabelPos() {
     const r = targetForLabel.getBoundingClientRect();
-    const top = r.top - 30;
+    const top = r.top - 62;
     label.style.top  = Math.max(top, 8) + 'px';
     label.style.left = Math.max(r.left, 8) + 'px';
   }
