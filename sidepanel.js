@@ -1517,7 +1517,7 @@ function highlightElement(tag, omiSvgUrl) {
   if (omiSvgUrl) {
     const omiImg = document.createElement('img');
     omiImg.src = omiSvgUrl;
-    omiImg.style.cssText = 'height:48px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3));';
+    omiImg.style.cssText = 'height:72px;width:auto;display:block;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3));';
     label.appendChild(omiImg);
   }
 
