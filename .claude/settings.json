@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Read(//Users/yomalkarunanayake/Developer/accessibility-scanner-extension /src/**)",
-      "Read(//Users/yomalkarunanayake/Developer/accessibility-scanner-extension /**)"
+      "Read(//Users/yomalkarunanayake/Developer/accessibility-scanner-extension /**)",
+      "Read(//Users/yomalkarunanayake/Developer/**)",
+      "Bash(grep -E \"\\\\.\\(json|md|yml|yaml\\)$\")"
     ],
     "additionalDirectories": [
       "/Users/yomalkarunanayake/Developer/accessibility-scanner-extension ",
