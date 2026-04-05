@@ -4,7 +4,8 @@
       "Read(//Users/yomalkarunanayake/Developer/accessibility-scanner-extension /src/**)",
       "Read(//Users/yomalkarunanayake/Developer/accessibility-scanner-extension /**)",
       "Read(//Users/yomalkarunanayake/Developer/**)",
-      "Bash(grep -E \"\\\\.\\(json|md|yml|yaml\\)$\")"
+      "Bash(grep -E \"\\\\.\\(json|md|yml|yaml\\)$\")",
+      "Bash(python3 -c \"import os; path = '/Users/yomalkarunanayake/Developer/accessibility-scanner-extension'; print\\(repr\\(os.listdir\\(os.path.dirname\\(path\\)\\)\\)\\)\")"
     ],
     "additionalDirectories": [
       "/Users/yomalkarunanayake/Developer/accessibility-scanner-extension ",
